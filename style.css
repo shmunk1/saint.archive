@@ -6,10 +6,16 @@ html { scroll-behavior: smooth; }
 body {
   background: radial-gradient(ellipse at 50% 0, #14110f 0%, var(--bg) 60%) fixed;
   color: var(--ink); font: 17px/1.7 "Special Elite", monospace; min-height: 100vh;
-  overflow-x: hidden; cursor: crosshair;
+  overflow-x: hidden;
 }
 a { color: var(--bone); text-decoration: none; }
-a:hover { color: var(--blood); }
+a:hover, a.hot { color: var(--blood); }
+.btn.hot { background:var(--blood); border-color:var(--blood); color:#fff; box-shadow:0 0 14px var(--blood); }
+
+/* curseur croix (fx.js): dessiné en JS, hitbox = toute l'image */
+body.xhair, body.xhair * { cursor: none; }
+#xcur { position:fixed; left:0; top:0; z-index:100; pointer-events:none; display:none;
+  filter:brightness(0) invert(1); mix-blend-mode:difference; } /* blanc sur noir, noir sur blanc */
 
 /* fog + grain + flashlight (follows the mouse via --mx/--my) */
 body::before, body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:50; }
@@ -82,3 +88,9 @@ h2 { font-size:2.4rem; margin:3rem 0 1.2rem; text-shadow:0 0 12px rgba(155,15,22
 footer { position:relative; z-index:10; text-align:center; color:#444; padding:2rem; font-size:.8rem; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+
+/* page transition: cache la page le temps que fx.js pose le voile noir (filet de sécurité 2s) */
+html.tr { background:#000; }
+html.tr body { visibility:hidden; animation: show 0s 2s forwards; }
+@keyframes show { to { visibility:visible; } }
+html.vt body::after, html.vt .fog, html.vt .eyes { display:none; } /* allège la page pendant la transition */
