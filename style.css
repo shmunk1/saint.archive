@@ -1,0 +1,84 @@
+@import url("https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Special+Elite&display=swap");
+
+:root { --bg:#050505; --ink:#cfcfc4; --dim:#7a7a70; --blood:#9b0f16; --bone:#e8e6d8; }
+* { box-sizing: border-box; margin: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: radial-gradient(ellipse at 50% 0, #14110f 0%, var(--bg) 60%) fixed;
+  color: var(--ink); font: 17px/1.7 "Special Elite", monospace; min-height: 100vh;
+  overflow-x: hidden; cursor: crosshair;
+}
+a { color: var(--bone); text-decoration: none; }
+a:hover { color: var(--blood); }
+
+/* fog + grain + flashlight (follows the mouse via --mx/--my) */
+body::before, body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:50; }
+body::before { /* flashlight: dark everywhere except around the cursor */
+  background: radial-gradient(circle 260px at var(--mx,50%) var(--my,40%), transparent 0, rgba(0,0,0,.65) 100%);
+}
+body::after { /* grain */
+  opacity:.12; mix-blend-mode:overlay; animation: grain .6s steps(4) infinite;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+@keyframes grain { 25%{transform:translate(-3%,2%)} 50%{transform:translate(2%,-3%)} 75%{transform:translate(-2%,-1%)} }
+
+.fog { position:fixed; left:-50%; bottom:0; width:200%; height:45vh; pointer-events:none; z-index:1;
+  background: radial-gradient(ellipse at 30% 100%, rgba(180,180,170,.12), transparent 60%),
+              radial-gradient(ellipse at 70% 100%, rgba(180,180,170,.10), transparent 55%);
+  animation: drift 40s linear infinite alternate; }
+@keyframes drift { to { transform: translateX(25%); } }
+
+/* eyes in the dark (created by fx.js) */
+.eyes { position:fixed; z-index:2; pointer-events:none; display:flex; gap:10px; animation: blink 4s forwards; }
+.eyes i { width:7px; height:4px; border-radius:50%; background:#d11; box-shadow:0 0 8px 2px #a00; }
+@keyframes blink { 0%,100%{opacity:0} 10%,40%{opacity:1} 45%{opacity:0} 50%,80%{opacity:1} }
+
+body.flash { animation: flash .35s; }
+@keyframes flash { 0%,40%{filter:brightness(3) contrast(1.4)} 20%{filter:brightness(.4)} }
+
+/* nav */
+nav { position:relative; z-index:10; display:flex; justify-content:center; gap:2.2rem; padding:1.4rem 1rem; flex-wrap:wrap;
+  border-bottom:1px solid #222; letter-spacing:.25em; text-transform:uppercase; font-size:.85rem; }
+nav a { color: var(--dim); padding-bottom:.2rem; }
+nav a:hover, nav a.on { color: var(--bone); border-bottom:1px solid var(--blood); text-shadow:0 0 8px var(--blood); }
+
+main { position:relative; z-index:10; max-width:1100px; margin:0 auto; padding:2rem 1.2rem 6rem; }
+h1, h2 { font-family:"UnifrakturCook", serif; font-weight:700; color:var(--bone); letter-spacing:.04em; }
+h2 { font-size:2.4rem; margin:3rem 0 1.2rem; text-shadow:0 0 12px rgba(155,15,22,.5); }
+
+/* glitch title */
+.glitch { position:relative; font-size:clamp(3rem,13vw,9rem); line-height:1; text-align:center; margin:4rem 0 1rem;
+  animation: flicker 6s infinite; }
+.glitch::before, .glitch::after { content:attr(data-t); position:absolute; inset:0; }
+.glitch::before { color:#f0f; mix-blend-mode:screen; animation: g1 3s infinite steps(1); clip-path:inset(0 0 60% 0); }
+.glitch::after  { color:#0ff; mix-blend-mode:screen; animation: g2 2.3s infinite steps(1); clip-path:inset(55% 0 0 0); }
+@keyframes g1 { 0%,92%,100%{transform:none} 93%{transform:translate(-6px,2px)} 96%{transform:translate(5px,-2px)} }
+@keyframes g2 { 0%,88%,100%{transform:none} 89%{transform:translate(6px,-3px)} 94%{transform:translate(-4px,3px)} }
+@keyframes flicker { 0%,18%,22%,62%,64%,100%{opacity:1} 20%,63%{opacity:.25} 21%{opacity:.8} }
+
+.sub { text-align:center; color:var(--dim); letter-spacing:.4em; text-transform:uppercase; font-size:.85rem; }
+.rip { text-align:center; margin:2rem 0 3rem; font-size:1.8rem; opacity:.7; animation: sway 5s ease-in-out infinite; }
+@keyframes sway { 50%{ transform:translateY(6px) rotate(2deg); } }
+
+/* tombstones */
+.grid { display:grid; gap:1.6rem; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); }
+.stone { position:relative; background:linear-gradient(#1a1a18,#0b0b0a); border:1px solid #2a2a26;
+  border-radius:110px 110px 6px 6px; padding:2.6rem 1.2rem 1.4rem; text-align:center; transition:.3s; overflow:hidden; }
+.stone:hover { transform:translateY(-6px) rotate(-.6deg); border-color:var(--blood); box-shadow:0 0 25px rgba(155,15,22,.4); }
+.stone h3 { font-family:"UnifrakturCook",serif; font-size:1.5rem; color:var(--bone); line-height:1.15; }
+.stone small { display:block; color:var(--dim); margin:.4rem 0 1rem; }
+.stone .cross { font-size:1.4rem; color:var(--dim); }
+.stone img { width:100%; aspect-ratio:16/9; object-fit:cover; filter:grayscale(1) contrast(1.2) brightness(.7); margin-bottom:.8rem; transition:.3s; }
+.stone:hover img { filter:grayscale(0) brightness(.9); }
+.ph { aspect-ratio:16/9; display:grid; place-items:center; background:#0d0d0c; color:#333; font-size:2.5rem; margin-bottom:.8rem; }
+.btns { display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; }
+.btn { border:1px solid #444; padding:.3rem .9rem; font-size:.8rem; text-transform:uppercase; letter-spacing:.15em; transition:.2s; }
+.btn:hover { background:var(--blood); border-color:var(--blood); color:#fff; box-shadow:0 0 14px var(--blood); }
+
+.bio p { max-width:720px; margin:0 auto 1.2rem; text-align:center; }
+.facts { display:flex; justify-content:center; gap:2.5rem; flex-wrap:wrap; margin:2rem 0; color:var(--dim); text-align:center; }
+.facts b { display:block; color:var(--bone); font-weight:400; }
+
+footer { position:relative; z-index:10; text-align:center; color:#444; padding:2rem; font-size:.8rem; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
