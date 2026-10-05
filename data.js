@@ -5,8 +5,11 @@ const spotify = (t) => `https://open.spotify.com/search/${q("1300SAINT " + t)}`;
 const sc = (t) => `https://soundcloud.com/search?q=${q("1300SAINT " + t)}`;
 const ytSearch = (t) => `https://www.youtube.com/results?search_query=${q("1300SAINT " + t)}`;
 
+// versions grandes (jusqu'a 1200 px) servies uniquement dans l'agrandissement de la page projet; liste generee, voir img/hd/
+const HD = ["featuring/cover-50ball.jpg", "featuring/cover-glitter.jpg", "featuring/cover-iontalk.jpg", "featuring/cover-killstreakIII.jpg", "featuring/cover-moneycome&go.jpg", "featuring/cover-party.jpg", "featuring/cover-novocaine.jpg", "released/cover-escalade.jpg", "released/cover-migo.jpg", "released/cover-saintseason.jpg", "released/cover-untitled02.jpg", "released/cover-worthit.jpg", "soundcloud/cover-world=mine.jpg"];
+const hdOf = (dir, file) => { const f = file && file.replace(/[.][^.]+$/, ".jpg"); return f && HD.includes(dir + "/" + f) ? `img/hd/cover-${dir}/${encodeURIComponent(f)}` : undefined; };
 const item = (dir, file, title, extra = {}) => ({
-  title, cover: file && `img/cover-${dir}/${encodeURIComponent(file)}`, spotify: spotify(title), soundcloud: sc(title),
+  title, cover: file && `img/cover-${dir}/${encodeURIComponent(file)}`, hd: hdOf(dir, file), spotify: spotify(title), soundcloud: sc(title),
   tracks: extra.type === "Album" || extra.type === "EP" ? undefined : 1, // nombre de morceaux (Album/EP: à renseigner à la main)
   ...extra,
 });

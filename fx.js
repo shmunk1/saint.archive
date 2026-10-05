@@ -124,6 +124,11 @@ const pages = {
     $(".cover-btn")?.addEventListener("click", () => {
       const box = document.createElement("div");
       box.className = "lightbox"; box.innerHTML = `<img src="${it.cover}" alt="${it.title} cover"><p>${it.title}</p>`;
+      if (it.hd) { // version grande (jusqu'à 1200 px): la cover normale s'affiche tout de suite, puis est remplacée dès que la grande est chargée
+        const big = new Image();
+        big.onload = () => { const im = box.querySelector("img"); if (!im) return; im.src = big.src; im.style.width = Math.min(innerWidth * .9, innerHeight * .78, big.naturalWidth) + "px"; };
+        big.src = it.hd;
+      }
       const close = () => { box.classList.add("out"); setTimeout(() => box.remove(), 350); removeEventListener("keydown", onKey); };
       const onKey = (e) => e.key === "Escape" && close();
       box.addEventListener("click", close); addEventListener("keydown", onKey);
