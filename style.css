@@ -296,3 +296,35 @@ button.rune { cursor:pointer; }
 .trk.hot .t, .trk.on .t { color:var(--bone); text-shadow:0 0 8px var(--blood); }
 .trk.hot .n, .trk.on .n { color:transparent; }
 .trk.hot .n::after, .trk.on .n::after { content:""; position:absolute; left:.15rem; top:50%; width:.7rem; height:.8rem; transform:translateY(-50%); background:var(--blood); clip-path:polygon(0 0, 100% 50%, 0 100%); }
+
+/* accueil: chiffres + frise */
+.stats { display:flex; justify-content:center; flex-wrap:wrap; margin:2.4rem 0 1rem; }
+.stat { display:flex; flex-direction:column; align-items:center; padding:.3rem 2.2rem; }
+.stat + .stat { border-left:1px solid #2a2a26; }
+.stat b { font-family:var(--display); font-weight:400; font-size:clamp(2.2rem, 5vw, 3.4rem); line-height:1.1; color:var(--bone); text-shadow:0 0 18px color-mix(in srgb, var(--blood) 45%, transparent); }
+.stat span { color:var(--dim); letter-spacing:.25em; text-transform:uppercase; font-size:.7rem; }
+@media (max-width:640px) { .stat { padding:.6rem 1.2rem; } .stat + .stat { border-left:0; } }
+
+/* le cimetière (accueil): une pierre par année, avec une mini-croix par son */
+.tombs { display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:1.2rem; margin:1.8rem 0 .6rem; }
+.stone.tomb { display:flex; flex-direction:column; align-items:center; gap:.9rem; min-height:290px; padding:3rem 1rem 1.3rem; border-radius:100px 100px 6px 6px; color:inherit;
+  animation:card-in var(--hv) var(--ease) backwards; animation-delay:calc(var(--i, 0) * 80ms); }
+.stone.tomb, .stone.tomb.hot { color:inherit; }
+.tomb h3 { margin:0; font-size:2.7rem; line-height:1; }
+.tomb .mini { flex:1; display:flex; flex-wrap:wrap; justify-content:center; align-content:center; align-items:flex-end; gap:6px 5px; max-width:165px; }
+.mini .g, .yard-key .k { display:block; width:10px; height:18px; background:var(--bone); opacity:.9; -webkit-mask:url(img/cross.png) center / contain no-repeat; mask:url(img/cross.png) center / contain no-repeat; }
+.mini .g.feat, .yard-key .k.feat { background:var(--dim); } .mini .g.sc, .yard-key .k.sc { background:var(--blood); opacity:1; } .mini .g.big { width:15px; height:27px; }
+.tomb small { color:var(--dim); letter-spacing:.15em; text-transform:uppercase; font-size:.65rem; text-align:center; }
+.tomb .enter { font-family:var(--display); font-size:1.1rem; color:var(--blood); opacity:0; transform:translateY(8px); transition:var(--hv) var(--ease); }
+.tomb.lit .enter { opacity:1; transform:none; text-shadow:0 0 10px var(--blood); }
+.yard-key { display:flex; justify-content:center; flex-wrap:wrap; gap:.4rem 1.8rem; margin:1.4rem 0 3rem; color:var(--dim); font-size:.72rem; letter-spacing:.15em; text-transform:uppercase; }
+.yard-key span { display:inline-flex; align-items:center; gap:.5rem; }
+.yard-key .k { width:8px; height:14px; } .yard-key .k.big { width:11px; height:20px; }
+
+/* page d'une année */
+.yr-head { text-align:center; margin:1.2rem 0 1.4rem; }
+.yr-head h1 { font-size:clamp(4rem, 14vw, 8rem); line-height:1; margin:.2rem 0 .4rem; text-shadow:0 0 30px color-mix(in srgb, var(--blood) 50%, transparent); }
+.yr-head .rel-kind { margin:0; }
+.yr-years { justify-content:center; margin:0 0 1rem; }
+#yr section h2 { margin-top:2.2rem; }
+@media (max-width:640px) { .tombs { grid-template-columns:repeat(2, 1fr); gap:.8rem; } .stone.tomb { min-height:230px; padding:2.4rem .6rem 1rem; border-radius:70px 70px 6px 6px; } .tomb h3 { font-size:2rem; } .mini .g { width:8px; height:14px; } .mini .g.big { width:12px; height:22px; } .tomb .mini { gap:5px 4px; } }

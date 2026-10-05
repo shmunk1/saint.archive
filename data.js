@@ -31,6 +31,7 @@ const DATA = {
       spotify: "https://open.spotify.com/artist/40VzC4fLTuY4YWFwKXK4Cv",
       soundcloud: "https://soundcloud.com/1300saint",
       youtube: "https://youtube.com/channel/UCFr1pnVIF_9XopwQLqVahBw",
+      instagram: "https://www.instagram.com/1300saint/",
     },
   },
   // Page d'un projet, optionnel dans {...}: length: "2:41" (duree du son, ou du projet entier: "1h 12min"),

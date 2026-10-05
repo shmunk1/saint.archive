@@ -5,7 +5,7 @@ const btn = (href, label) => `<a class="rune" href="${href}" target="_blank" rel
 // On retient la dernière position du pointeur et on recalcule nous-mêmes la carte (.lit) et le lien/bouton (.hot) qui sont dessous.
 // Le CSS n'utilise donc plus :hover (qui reste collé à l'ancien élément tant que la souris ne bouge pas).
 const plainLinkAt = (x, y) => document.elementFromPoint(x, y)?.closest?.("a,button") ?? null;
-let ptr = null, lit = null, hot = null, linkAt = plainLinkAt; // linkAt: remplacé par le curseur croix (hitbox élargie)
+let ptr = null, lit = null, hot = null, linkAt = plainLinkAt, onHot = () => {}; // linkAt: remplacé par le curseur croix (hitbox élargie)
 // à chaque survol l'élément bouge un peu différemment (inclinaison, hauteur, décalage au hasard)
 const tilt = (el) => {
   const R = (a, b) => a + Math.random() * (b - a), sign = Math.random() < .5 ? -1 : 1;
@@ -22,7 +22,7 @@ const syncHover = () => {
     if (el) { tilt(el); el.classList.add("lit"); }
   }
   const l = linkAt(ptr.x, ptr.y);
-  if (l !== hot) { hot?.classList.remove("hot"); l?.classList.add("hot"); hot = l; if (l && "tilt" in l.dataset) tilt(l); }
+  if (l !== hot) { hot?.classList.remove("hot"); l?.classList.add("hot"); hot = l; if (l && "tilt" in l.dataset) tilt(l); onHot(l); }
 };
 // au plus un calcul par image, et aucun pendant un défilement: les effets de survol (filtres sur de grandes images, ombres, contours)
 // qui se déclenchaient sur chaque carte qui passait sous la souris faisaient ramer. On les coupe, puis on recalcule 140 ms après l'arrêt.
@@ -31,7 +31,7 @@ addEventListener("pointermove", (e) => { if (e.pointerType !== "touch") { ptr = 
 addEventListener("scroll", () => {
   if (!scrolling) {
     scrolling = true; document.documentElement.classList.add("scrolling");
-    lit?.classList.remove("lit"); hot?.classList.remove("hot"); lit = hot = null;
+    lit?.classList.remove("lit"); hot?.classList.remove("hot"); lit = hot = null; onHot(null);
   }
   clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => { scrolling = false; document.documentElement.classList.remove("scrolling"); syncHover(); }, 140);
@@ -48,7 +48,7 @@ const rails = new Map(); // .grid -> refresh() du carrousel (voir plus bas)
 const stone = (inner) => `<article class="stone">${inner}</article>`;
 
 // ---- header: liens vers les plateformes (à droite) ----
-$(".ext").innerHTML = [["Spotify", a.links.spotify], ["SoundCloud", a.links.soundcloud], ["YouTube", a.links.youtube]]
+$(".ext").innerHTML = [["Spotify", a.links.spotify], ["SoundCloud", a.links.soundcloud], ["YouTube", a.links.youtube], ["Instagram", a.links.instagram]]
   .map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`).join("");
 
 // ---- per-page rendering (data-page on <body>) ----
@@ -57,7 +57,32 @@ const pages = {
     $("#facts").innerHTML = [["Real name", a.real], ["Born", a.born], ["From", a.from], ["Label", a.label], ["Style", a.style]]
       .map(([k, v]) => `<div>${k}<b>${v}</b></div>`).join("");
     $("#bio").innerHTML = a.bio.map((p) => `<p>${p}</p>`).join("");
-    $("#links").innerHTML = btn(a.links.spotify, "Spotify") + btn(a.links.soundcloud, "SoundCloud") + btn(a.links.youtube, "YouTube");
+    $("#links").innerHTML = btn(a.links.spotify, "Spotify") + btn(a.links.soundcloud, "SoundCloud") + btn(a.links.youtube, "YouTube") + btn(a.links.instagram, "Instagram");
+
+    // tout ce qui suit est calculé depuis data.js: ça se met à jour tout seul quand on ajoute un son
+    const all = [...DATA.releases, ...DATA.soundcloud, ...DATA.features], yearOf = (x) => +(x.date || "0").slice(0, 4);
+    const years = all.map(yearOf).filter(Boolean), isProject = (r) => r.type === "Album" || r.type === "EP";
+    const stats = [[all.length, "Songs"], [DATA.features.length, "Features"], [DATA.clips.length, "Clips"], [DATA.releases.filter(isProject).length, "Albums & EPs"], [Math.min(...years), "First release", true]];
+    $("#stats").innerHTML = stats.map(([n, l, fixed]) => `<div class="stat"><b data-n="${n}"${fixed ? " data-fixed" : ""}>${fixed ? n : 0}</b><span>${l}</span></div>`).join("");
+    // les nombres comptent jusqu'à leur valeur quand ils apparaissent à l'écran (valeur finale tout de suite si animations réduites)
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const count = (el) => {
+      const to = +el.dataset.n, t0 = performance.now(), done = () => (el.textContent = to);
+      if (reduce) return done();
+      setTimeout(done, 1800); // filet: si l'animation est suspendue (onglet en arrière-plan), on affiche quand même la valeur finale
+      (function f(now) { const u = Math.min(1, (now - t0) / 1200); el.textContent = Math.round(to * (1 - (1 - u) ** 3)); if (u < 1) requestAnimationFrame(f); })(t0);
+    };
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { count(e.target); io.unobserve(e.target); } }), { threshold: .6 });
+    document.querySelectorAll("#stats b:not([data-fixed])").forEach((b) => io.observe(b));
+
+    // le cimetière: une pierre par année. Dedans, une mini-croix par son (les albums / EP sont plus grands). Un clic entre dans l'année.
+    const kindOf = (x) => (DATA.releases.includes(x) ? "rls" : DATA.features.includes(x) ? "feat" : "sc"); // "rls" et pas "rel": .rel est déjà la mise en page de la page projet
+    $("#yard").innerHTML = [...new Set(years)].sort().map((y) => {
+      const items = all.filter((x) => yearOf(x) === y).sort((p, q) => (p.date || "").localeCompare(q.date || "")), projects = items.filter(isProject).length;
+      return `<a class="stone tomb" href="year.html?y=${y}"><h3>${y}</h3><div class="mini">${items.map((x) => `<i class="g ${kindOf(x)}${isProject(x) ? " big" : ""}"></i>`).join("")}</div>
+        <small>${items.length} songs${projects ? ` \u00b7 ${projects} project${projects > 1 ? "s" : ""}` : ""}</small><span class="enter">Enter &#10013;</span></a>`;
+    }).join("");
+    stagger($("#yard"));
   },
   disco() {
     // pochette en haut de la pierre, puis titre, infos et boutons (SoundCloud seul pour les sons SoundCloud)
@@ -160,6 +185,24 @@ const pages = {
       box.addEventListener("click", close); addEventListener("keydown", onKey);
       document.body.append(box);
     });
+  },
+  year() {
+    // page d'une année: year.html?y=2025 -> tous les sons de l'année, par catégorie
+    const y = +new URLSearchParams(location.search).get("y"), root = $("#yr");
+    const all = [...DATA.releases, ...DATA.soundcloud, ...DATA.features], yearOf = (x) => +(x.date || "0").slice(0, 4);
+    const allYears = [...new Set(all.map(yearOf).filter(Boolean))].sort(), isProject = (x) => x.type === "Album" || x.type === "EP";
+    const back = '<a class="rune rel-back" href="index.html#graveyard" data-dir="r">&larr; Graveyard</a>';
+    if (!allYears.includes(y)) { root.innerHTML = back + "<p>No songs for this year.</p>"; return; }
+    document.title = `${y} \u2014 1300SAINT`;
+    const mine = (arr) => arr.filter((x) => yearOf(x) === y).sort((p, q) => (q.date || "").localeCompare(p.date || ""));
+    const sp = [["spotify", "Spotify"]], sc = [["soundcloud", "SoundCloud"]], rel = mine(DATA.releases);
+    const sections = [["Albums & EPs", rel.filter(isProject), sp], ["Singles", rel.filter((x) => !isProject(x)), sp], ["SoundCloud Exclusives", mine(DATA.soundcloud), sc], ["Features", mine(DATA.features), sp]].filter((x) => x[1].length);
+    const n = all.filter((x) => yearOf(x) === y).length, projects = rel.filter(isProject).length;
+    root.innerHTML = `${back}
+      <header class="yr-head"><p class="rel-kind">The Graveyard</p><h1>${y}</h1><p class="sub">${n} songs${projects ? ` \u00b7 ${projects} project${projects > 1 ? "s" : ""}` : ""}</p></header>
+      <div class="filters yr-years">${allYears.map((v) => `<a class="btn" href="year.html?y=${v}" data-dir="${v > y ? "l" : "r"}" aria-pressed="${v === y}">${v}</a>`).join("")}</div>
+      ${sections.map(([t, arr, links]) => `<section><h2>${t}</h2><div class="grid">${arr.map((x) => card(x, links)).join("")}</div></section>`).join("")}`;
+    root.querySelectorAll(".grid").forEach(stagger);
   },
   clips() {
     // carte "écran": la miniature remplit toute la carte, titre en bas, bouton lecture au centre; toute la carte est un lien
@@ -362,7 +405,7 @@ addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "p
   document.body.append(c);
   const ctx = c.getContext("2d");
   const MS = 600, order = ["index.html", "discographie.html", "clips.html"];
-  const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return f === "release.html" ? 1.5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
+  const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return f === "release.html" ? 1.5 : f === "year.html" ? .5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
   let seed, strips = [], marks = [], sweep = 1, dist = 0, busy = false;
   const crossImg = new Image(); crossImg.src = "img/cross.png";
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
