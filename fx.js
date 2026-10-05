@@ -1,21 +1,36 @@
 const $ = (s) => document.querySelector(s);
 const a = DATA.artist;
-const btn = (href, label) => `<a class="btn" href="${href}" target="_blank" rel="noopener">${label}</a>`;
+const btn = (href, label) => `<a class="rune" href="${href}" target="_blank" rel="noopener">${label}</a>`;
 // Le :hover du navigateur ne se met pas à jour quand la page (ou le carrousel) bouge sous une souris immobile.
 // On retient la dernière position du pointeur et on recalcule nous-mêmes la carte (.lit) et le lien/bouton (.hot) qui sont dessous.
 // Le CSS n'utilise donc plus :hover (qui reste collé à l'ancien élément tant que la souris ne bouge pas).
 const plainLinkAt = (x, y) => document.elementFromPoint(x, y)?.closest?.("a,button") ?? null;
 let ptr = null, lit = null, hot = null, linkAt = plainLinkAt; // linkAt: remplacé par le curseur croix (hitbox élargie)
+// à chaque survol l'élément bouge un peu différemment (inclinaison, hauteur, décalage au hasard)
+const tilt = (el) => {
+  const R = (a, b) => a + Math.random() * (b - a), sign = Math.random() < .5 ? -1 : 1;
+  el.style.setProperty("--lr", sign * R(.4, 1.5) + "deg");
+  el.style.setProperty("--ly", -R(4, 10) + "px");
+  el.style.setProperty("--lx", R(-4, 4) + "px");
+};
 const syncHover = () => {
   if (!ptr) return;
   const el = document.elementFromPoint(ptr.x, ptr.y)?.closest?.(".stone") ?? null;
-  if (el !== lit) { lit?.classList.remove("lit"); el?.classList.add("lit"); lit = el; }
+  if (el !== lit) {
+    lit?.classList.remove("lit"); lit = el;
+    if (el) { tilt(el); el.classList.add("lit"); }
+  }
   const l = linkAt(ptr.x, ptr.y);
-  if (l !== hot) { hot?.classList.remove("hot"); l?.classList.add("hot"); hot = l; }
+  if (l !== hot) { hot?.classList.remove("hot"); l?.classList.add("hot"); hot = l; if (l && "tilt" in l.dataset) tilt(l); }
 };
 addEventListener("pointermove", (e) => { if (e.pointerType !== "touch") { ptr = { x: e.clientX, y: e.clientY }; syncHover(); } });
 addEventListener("scroll", syncHover, { passive: true });
 document.documentElement.addEventListener("pointerleave", () => { ptr = null; lit?.classList.remove("lit"); hot?.classList.remove("hot"); lit = hot = null; });
+// carte "pierre" (discography + suggestions): pochette + titre + nb de tracks = lien vers la page du projet; boutons externes optionnels
+const card = (it, links = []) => `<article class="stone c"><a class="cardlink" href="release.html?r=${it.id}">${it.cover ? `<img src="${it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
+  <h3>${it.title}</h3><small>${it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "&nbsp;"}</small></a>
+  ${links.length ? `<div class="btns">${links.map(([k, l]) => btn(it[k], l)).join("")}</div>` : ""}</article>`;
+const stagger = (el) => [...el.children].forEach((c, i) => c.style.setProperty("--i", Math.min(i, 14))); // apparition en cascade (voir .stone.c en CSS)
 const rails = new Map(); // .grid -> refresh() du carrousel (voir plus bas)
 const stone = (inner) => `<article class="stone">${inner}</article>`;
 
@@ -33,10 +48,6 @@ const pages = {
   },
   disco() {
     // pochette en haut de la pierre, puis titre, infos et boutons (SoundCloud seul pour les sons SoundCloud)
-    const card = (it, links) => `<article class="stone c">${it.cover ? `<img src="${it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
-      <h3>${it.title}</h3><small>${it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "&nbsp;"}</small>
-      <div class="btns">${links.map(([k, l]) => btn(it[k], l)).join("")}</div></article>`;
-    const stagger = (el) => [...el.children].forEach((c, i) => c.style.setProperty("--i", Math.min(i, 14))); // apparition en cascade (voir .stone.c en CSS)
     // tri des "Released": All (récent -> ancien, sans date en dernier) / Albums / EPs / Singles
     const kinds = [["all", "All"], ["Album", "Albums"], ["EP", "EPs"], ["Single", "Singles"]];
     const byDate = (a, b) => (b.date || "").localeCompare(a.date || "");
@@ -54,10 +65,76 @@ const pages = {
     $("#features").innerHTML = DATA.features.slice().sort(byDate).map((r) => card(r, [["spotify", "Spotify"]])).join("");
     stagger($("#soundcloud")); stagger($("#features"));
   },
+  release() {
+    // page d'un projet (album, EP, single, exclu SoundCloud, feature): release.html?r=<id>
+    const id = new URLSearchParams(location.search).get("r");
+    const groups = [["releases", "Released", "spotify", "Spotify"], ["soundcloud", "SoundCloud Exclusive", "soundcloud", "SoundCloud"], ["features", "Feature", "spotify", "Spotify"]];
+    const g = groups.find(([k]) => DATA[k].some((x) => x.id === id));
+    const root = $("#rel"), back = '<a class="rune rel-back" href="discographie.html" data-dir="r">&larr; Discography</a>';
+    if (!g) { root.innerHTML = back + "<p>This release does not exist.</p>"; return; }
+    const [key, label, pk, pname] = g, it = DATA[key].find((x) => x.id === id);
+    document.title = `${it.title} \u2014 1300SAINT`;
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const fmt = (dt) => { const [y, m, dd] = (dt || "").split("-"); return [dd && +dd, m && MONTHS[+m - 1], y].filter(Boolean).join(" "); };
+    const tr = it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "";
+    // length: durée du son, ou du projet en entier (texte libre dans data.js, ex "2:41" ou "1h 12min")
+    const meta = [["Type", key === "releases" ? it.type || "Single" : label], ["Released", fmt(it.date)], ["Tracks", tr], ["Length", it.length]].filter(([, v]) => v);
+
+    // lecteur d'extraits: Spotify (album/titre) ou SoundCloud, si on a le lien direct. Rien n'est charge chez eux avant le clic.
+    const url = (u) => { try { return new URL(u); } catch { return null; } };
+    let embed = null;
+    const sp = url(it.spotify), scu = url(it.soundcloud);
+    if (sp?.hostname === "open.spotify.com") {
+      const p = sp.pathname.split("/").filter((x) => x && !x.startsWith("intl-"));
+      if (["album", "track", "playlist"].includes(p[0]) && p[1]) embed = { src: `https://open.spotify.com/embed/${p[0]}/${p[1]}`, h: p[0] === "track" ? 152 : 352, from: "Spotify" };
+    }
+    if (!embed && scu?.hostname === "soundcloud.com" && scu.pathname.split("/").filter(Boolean).length >= 2 && !scu.pathname.startsWith("/search"))
+      embed = { src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(it.soundcloud)}&color=%239b0f16&visual=false`, h: 166, from: "SoundCloud" };
+
+    // suggestions: 2 au hasard dans la même section + 2 ailleurs (ça change à chaque visite)
+    const shuffle = (arr) => arr.map((x) => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map((p) => p[1]);
+    const others = groups.filter(([k]) => k !== key).flatMap(([k]) => DATA[k]);
+    const picks = [...shuffle(DATA[key].filter((x) => x.id !== it.id)).slice(0, 2), ...shuffle(others).slice(0, 2)];
+
+    const songs = (it.songs || []).map((x) => (typeof x === "string" ? { title: x } : x));
+    root.innerHTML = `${back}
+      <div class="rel">
+        ${it.cover ? `<button class="cover-btn" data-tilt aria-label="Enlarge the cover"><img class="rel-cover" src="${it.cover}" alt="${it.title} cover" width="640" height="640"></button>` : ""}
+        <div>
+          <p class="rel-kind">${key === "releases" ? it.type || "Single" : label}</p>
+          <h1>${it.title}</h1>
+          <dl class="rel-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
+          <div class="btns" style="justify-content:flex-start">${btn(it[pk], "Open on " + pname)}</div>
+        </div>
+      </div>
+      <section><h2>Preview</h2>
+        <div class="player" id="player">${embed
+          ? `<button class="rune" id="load">&#9654;&nbsp; Load the player</button><small>Loads content from ${embed.from}</small>`
+          : `<small>No preview yet for this one.</small>`}</div>
+      </section>
+      ${songs.length ? `<section><h2>Tracklist</h2><ol class="tracks">${songs.map((x) => `<li>${x.url ? `<a href="${x.url}" target="_blank" rel="noopener">${x.title}</a>` : x.title}</li>`).join("")}</ol></section>` : ""}
+      <section><h2>You might also like</h2><div class="grid" id="suggest">${picks.map((x) => card(x)).join("")}</div></section>`;
+    stagger($("#suggest"));
+    $("#load")?.addEventListener("click", () => {
+      const f = document.createElement("iframe");
+      f.src = embed.src; f.height = embed.h; f.title = `${it.title} \u2014 ${embed.from} player`; f.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
+      $("#player").replaceChildren(f);
+    });
+    // clic sur la cover: elle s'affiche en grand (clic, Échap ou re-clic pour fermer)
+    $(".cover-btn")?.addEventListener("click", () => {
+      const box = document.createElement("div");
+      box.className = "lightbox"; box.innerHTML = `<img src="${it.cover}" alt="${it.title} cover"><p>${it.title}</p>`;
+      const close = () => { box.classList.add("out"); setTimeout(() => box.remove(), 350); removeEventListener("keydown", onKey); };
+      const onKey = (e) => e.key === "Escape" && close();
+      box.addEventListener("click", close); addEventListener("keydown", onKey);
+      document.body.append(box);
+    });
+  },
   clips() {
-    $("#clips").innerHTML = DATA.clips.map((c) => stone(
-      `<a href="${c.url}" target="_blank" rel="noopener">${c.thumb ? `<img src="${c.thumb}" alt="${c.title}">` : `<div class="ph">▶</div>`}</a>
-       <h3>${c.title}</h3><small>&nbsp;</small><div class="btns">${btn(c.url, "Watch on YouTube")}</div>`)).join("");
+    // carte "écran": la miniature remplit toute la carte, titre en bas, bouton lecture au centre; toute la carte est un lien
+    $("#clips").innerHTML = DATA.clips.map((c) => `<article class="stone clip"><a href="${c.url}" target="_blank" rel="noopener" title="${c.title}">
+      ${c.thumb ? `<img src="${c.thumb}" alt="${c.title}" loading="lazy" decoding="async" width="480" height="360">` : '<div class="ph">&#9654;</div>'}
+      <span class="play"></span><span class="cap">${c.title}</span></a></article>`).join("");
   },
 };
 try { pages[document.body.dataset.page](); } catch (e) { console.error(e); } // une erreur de contenu ne doit pas bloquer le reste (engrenage, transitions...)
@@ -148,7 +225,9 @@ if (matchMedia("(pointer:fine)").matches) {
   const linkUnder = (cx, cy) => {
     const w = cur.width, h = cur.height;
     for (const [fx, fy] of [[.5, .5], [.5, .15], [.5, .85], [.15, .4], [.85, .4], [.5, 0], [.5, 1], [0, .4], [1, .4]]) {
-      const l = document.elementsFromPoint(cx - w / 2 + fx * w, cy - h / 2 + fy * h).find((e) => e.closest("a,button"));
+      // la pile d'éléments sous ce point, du dessus vers le dessous; on s'arrête à la cover agrandie: ce qui est caché dessous n'est pas cliquable
+      const stack = document.elementsFromPoint(cx - w / 2 + fx * w, cy - h / 2 + fy * h), cut = stack.findIndex((e) => e.classList?.contains("lightbox"));
+      const l = (cut < 0 ? stack : stack.slice(0, cut + 1)).find((e) => e.closest("a,button"));
       if (l) return l.closest("a,button");
     }
     return null;
@@ -206,7 +285,7 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
   let cols = { ...DEF };
   try { Object.assign(cols, JSON.parse(store.get("colors", "{}"))); } catch {}
   p.insertAdjacentHTML("beforeend", "<h4>Colors</h4>" + [["blood", "Accent"], ["bone", "Titles"], ["ink", "Text"]]
-    .map(([k, l]) => `<label><span>${l}</span><input type="color" data-c="${k}"></label>`).join("") + '<button class="btn" id="s-reset">Reset colors</button>');
+    .map(([k, l]) => `<label><span>${l}</span><input type="color" data-c="${k}"></label>`).join("") + '<button class="rune" id="s-reset">Reset colors</button>');
   const paint = () => p.querySelectorAll("[data-c]").forEach((i) => { i.value = cols[i.dataset.c]; css.setProperty("--" + i.dataset.c, cols[i.dataset.c]); });
   p.querySelectorAll("[data-c]").forEach((i) => (i.oninput = () => { cols[i.dataset.c] = i.value; css.setProperty("--" + i.dataset.c, i.value); store.set("colors", JSON.stringify(cols)); }));
   $("#s-reset").onclick = () => { cols = { ...DEF }; paint(); store.set("colors", "{}"); };
@@ -244,7 +323,7 @@ addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "p
   document.body.append(c);
   const ctx = c.getContext("2d");
   const MS = 600, order = ["index.html", "discographie.html", "clips.html"];
-  const pageIdx = (path) => Math.max(0, order.indexOf(path.split("/").pop() || "index.html"));
+  const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return f === "release.html" ? 1.5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
   let seed, strips = [], marks = [], sweep = 1, dist = 0, busy = false;
   const crossImg = new Image(); crossImg.src = "img/cross.png";
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -321,9 +400,9 @@ addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "p
   addEventListener("click", (e) => { // départ: l'ombre balaie l'écran puis on change de page
     const a = e.target.closest?.("a");
     if (busy || !a || reduce || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey ||
-        a.target === "_blank" || a.origin !== location.origin || a.pathname === location.pathname) return;
+        a.target === "_blank" || a.origin !== location.origin || a.pathname + a.search === location.pathname + location.search) return;
     e.preventDefault(); busy = true;
-    const dir = pageIdx(a.pathname) > pageIdx(location.pathname) ? "l" : "r";
+    const dir = a.dataset.dir || (pageIdx(a.pathname) > pageIdx(location.pathname) ? "l" : "r");
     try { sessionStorage.t = dir; } catch {}
     build(dir);
     run((u) => render(u, 0), MS, () => (location.href = a.href));

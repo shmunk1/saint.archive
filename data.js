@@ -30,6 +30,9 @@ const DATA = {
       youtube: "https://youtube.com/channel/UCFr1pnVIF_9XopwQLqVahBw",
     },
   },
+  // Page d'un projet, optionnel dans {...}: length: "2:41" (duree du son, ou du projet entier: "1h 12min"),
+  //   songs: ["Titre 1", "Titre 2", ...] (tracklist), et pour le lecteur d'extraits:
+  //   spotify: "https://open.spotify.com/album/ID" (ou /track/ID)  |  soundcloud: "https://soundcloud.com/1300saint/titre"
   // Chaque entrée: item(dossier, fichier de la pochette, titre, {type, date, tracks}).
   // type: "Album" | "EP" | "Single" (vide = compté comme Single). date: "AAAA-MM-JJ" ou "AAAA-MM" ou "AAAA" (vide = en fin de liste).
   // Les liens sont des recherches pour l'instant.
@@ -121,14 +124,54 @@ const DATA = {
     item("featuring", "cover-kencarsonntg.jpg", "KEN CARSON/N.T.G", { date: "2025-04-15" }),
     item("featuring", "cover-bison.jpg", "BISON", { date: "2025-02-07" }),
   ],
-  // clips: title, yt (YouTube ID, optional)
+  // clips: title, yt (ID YouTube = la partie après youtu.be/, sans ?si=...)
   clips: [
-    { title: "OH K", yt: "" },
-    { title: "EVERYTHING SLATT", yt: "" },
-    { title: "SAFE & SOUND", yt: "" },
-    { title: "VENOM", yt: "" },
+    { title: "Migo", yt: "AQoOtiHlZbM" },
+    { title: "Encore.", yt: "H11S0oy8fcw" },
+    { title: "MOLLY", yt: "8flyggr7VfQ" },
+    { title: "BLONDE P*UNK", yt: "abHoen_wqwM" },
+    { title: "LIFETIME", yt: "DWDkGOpDEx4" },
+    { title: "POPE LIVIN (feat. Lil Gotit)", yt: "Id857vCRxvw" },
+    { title: "STOP PLAYIN", yt: "PFyuJ3kyeRM" },
+    { title: "BIGGER THAN LIFE", yt: "qMUuLcmIfCc" },
+    { title: "BloodSucker.", yt: "tyAfoXBknO8" },
+    { title: "KUTTA", yt: "DCdtf4ldByU" },
+    { title: "#FKITWEBALL", yt: "J1Zp9xe4t7c" },
+    { title: "SHOGUN", yt: "yIaucjXUl34" },
+    { title: "NOT A TELFAR", yt: "JkeQlPBjzsA" },
+    { title: "OUTBAD", yt: "i23cHZ22UzI" },
+    { title: "VENOM", yt: "M3f9sbXeIDg" },
+    { title: "SAFE & SOUND", yt: "jYoPzkr0ojk" },
+    { title: "UNITED", yt: "JCuMPyOaIqQ" },
+    { title: "Worth It", yt: "8kEgRIgDM4c" },
+    { title: "ESCALADE", yt: "H8-4Os70kDA" },
+    { title: "POET", yt: "RslIZ4ZWG60" },
+    { title: "ONE", yt: "MtvOpFf-Sp8" },
+    { title: "New Generation (feat. diamond*, iyrus & Tezzus)", yt: "Wgj0xqiVlys" },
+    { title: "Warrior (feat. Twosoulsonefate)", yt: "Coo9BJyXqlo" },
+    { title: "Kyoto", yt: "b_FLyAr-GYc" },
+    { title: "EA (feat. Nine Vicious)", yt: "Fg91Ke9HTe4" },
+    { title: "Savior Freestyle", yt: "JTcmdN-tuBo" },
+    { title: "Of Course", yt: "tFMoFAzwXVI" },
+    { title: "Grinch (feat. Nine Vicious)", yt: "sXZ-ER2_k4c" },
+    { title: "Tired Asf (feat. Nine Vicious)", yt: "MfcrLbaioQs" },
+    { title: "Pop On My Opp", yt: "qXrFFRP9Tyo" },
+    { title: "Young Thug - Revenge (feat. Lil Gotit & 1300SAINT)", yt: "mSZKZLqO4Is" },
+    { title: "Young Thug - Consummate (feat. Tezzus & 1300SAINT)", yt: "7joSmbQgIT0" },
+    { title: "FOREIGN SHIT (feat. Nine Vicious & Yung Kayo)", yt: "qD8Ag34Nwnw" },
+    { title: "IN TROUBLE", yt: "aV98dGDO31Y" },
+    { title: "set. (feat. sk8star, diorvsyou, apollored1)", yt: "mK6vX2hcIGk" },
+    { title: "EVERYTHING SLATT", yt: "opxTPs1zbmQ" },
   ],
 };
+// id de chaque page projet (release.html?r=<id>) + groupe d'origine. Slug unique a partir du titre.
+const slug = (t) => t.toLowerCase().replace(/[+]/g, " plus ").replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
+const usedIds = new Set();
+for (const k of ["releases", "soundcloud", "features"]) DATA[k].forEach((it) => {
+  let s = slug(it.title), base = s, n = 2;
+  while (usedIds.has(s)) s = base + "-" + n++;
+  usedIds.add(s); it.id = s; it.kind = k;
+});
 DATA.clips.forEach((c) => {
   c.url = c.yt ? `https://www.youtube.com/watch?v=${c.yt}` : ytSearch(c.title);
   c.thumb = c.yt ? `https://img.youtube.com/vi/${c.yt}/hqdefault.jpg` : "";
