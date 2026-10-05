@@ -71,7 +71,10 @@ h2 { font-size:2.4rem; margin:3rem 0 1.2rem; text-shadow:0 0 12px color-mix(in s
 @keyframes flicker { 0%,18%,22%,62%,64%,100%{opacity:1} 20%,63%{opacity:.25} 21%{opacity:.8} }
 
 .sub { text-align:center; color:var(--dim); letter-spacing:.4em; text-transform:uppercase; font-size:.85rem; }
-.rip { text-align:center; margin:2rem 0 3rem; font-size:1.8rem; opacity:.7; animation: sway 5s ease-in-out infinite; }
+.rip { display:flex; justify-content:center; gap:.55rem; margin:1.4rem 0 3rem; opacity:.75; }
+/* trois "+" épais à angles droits, dessinés (pas un caractère de police): bras de 36% de la taille */
+.rip i { display:block; width:2.8rem; height:2.8rem; background:var(--bone);
+  clip-path:polygon(32% 0, 68% 0, 68% 32%, 100% 32%, 100% 68%, 68% 68%, 68% 100%, 32% 100%, 32% 68%, 0 68%, 0 32%, 32% 32%); }
 @keyframes sway { 50%{ transform:translateY(6px) rotate(2deg); } }
 
 /* tombstones */
@@ -328,3 +331,13 @@ button.rune { cursor:pointer; }
 .yr-years { justify-content:center; margin:0 0 1rem; }
 #yr section h2 { margin-top:2.2rem; }
 @media (max-width:640px) { .tombs { grid-template-columns:repeat(2, 1fr); gap:.8rem; } .stone.tomb { min-height:230px; padding:2.4rem .6rem 1rem; border-radius:70px 70px 6px 6px; } .tomb h3 { font-size:2rem; } .mini .g { width:8px; height:14px; } .mini .g.big { width:12px; height:22px; } .tomb .mini { gap:5px 4px; } }
+
+/* gros bouton en bas de l'accueil */
+.cta { display:flex; justify-content:center; margin:3.6rem 0 1.5rem; }
+.rune.cta-btn { font-size:1.6rem; padding:1rem 2.8rem .95rem; }
+@media (max-width:640px) { .rune.cta-btn { font-size:1.25rem; padding:.85rem 1.6rem .8rem; } }
+
+/* option "Plain black background" (engrenage): on retire croix, brume, grain et dégradé; le noir reste uni */
+html.plain body { background:var(--bg); }
+html.plain #crosses, html.plain .fog { display:none; }
+html.plain body::after { display:none; }

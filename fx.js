@@ -340,6 +340,7 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
   p.innerHTML = `<h3>Settings</h3>
     ${hasCursor ? '<label><span>Custom cursor</span><input type="checkbox" id="s-cur"></label>' : ""}
     <label><span>Lightning</span><input type="checkbox" id="s-light"></label>
+    <label><span>Plain black background</span><input type="checkbox" id="s-plain"></label>
     <label><span>Readable font</span><input type="checkbox" id="s-font"></label>
     <label>Brightness<input type="range" id="s-br" min="0" max="100"></label>`;
   document.body.append(g, p);
@@ -356,6 +357,9 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
   const lb = $("#s-light"); // éclairs on/off
   lb.checked = lightningOn = store.get("light", "1") === "1";
   lb.onchange = () => { lightningOn = lb.checked; store.set("light", lb.checked ? "1" : "0"); };
+  const pb = $("#s-plain"); // fond noir simple: ni croix, ni brume, ni grain, ni dégradé
+  pb.checked = store.get("plain", "0") === "1";
+  pb.onchange = () => { document.documentElement.classList.toggle("plain", pb.checked); store.set("plain", pb.checked ? "1" : "0"); };
   const fb = $("#s-font"); // police lisible (appliquée aussi tout de suite dans le <head> pour éviter un flash)
   fb.checked = store.get("font", "0") === "1";
   fb.onchange = () => { document.documentElement.classList.toggle("legible", fb.checked); store.set("font", fb.checked ? "1" : "0"); dispatchEvent(new Event("resize")); };
