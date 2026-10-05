@@ -280,3 +280,19 @@ button.rune { cursor:pointer; }
 
 /* suggestions en bas de page */
 #suggest { margin-top:1.4rem; }
+.tracks li .len { margin-left:auto; color:var(--dim); font-size:.85rem; letter-spacing:.1em; }
+
+/* pendant un défilement: aucune transition de survol en cours (fx.js pose .scrolling) */
+.scrolling .stone, .scrolling .stone *, .scrolling .stone::before, .scrolling .stone::after, .scrolling .cover-btn, .scrolling .cover-btn * { transition:none !important; }
+.player.live { padding:0; border:0; background:none; display:block; }
+
+/* tracklist: chaque ligne est un bouton qui lance son morceau dans le lecteur Spotify de la page */
+.tracks li { display:block; counter-increment:none; padding:0; }
+.tracks li::before { content:none; }
+.tracks li > span, .trk { display:flex; align-items:center; gap:1.2rem; width:100%; padding:.65rem .4rem; }
+.trk { background:none; border:0; color:inherit; font:inherit; text-align:left; cursor:pointer; transition:background var(--hv); }
+.tracks .n { position:relative; min-width:2rem; color:var(--blood); letter-spacing:.1em; }
+.trk.hot, .trk.on { background:color-mix(in srgb, var(--blood) 14%, transparent); }
+.trk.hot .t, .trk.on .t { color:var(--bone); text-shadow:0 0 8px var(--blood); }
+.trk.hot .n, .trk.on .n { color:transparent; }
+.trk.hot .n::after, .trk.on .n::after { content:""; position:absolute; left:.15rem; top:50%; width:.7rem; height:.8rem; transform:translateY(-50%); background:var(--blood); clip-path:polygon(0 0, 100% 50%, 0 100%); }

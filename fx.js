@@ -13,8 +13,9 @@ const tilt = (el) => {
   el.style.setProperty("--ly", -R(4, 10) + "px");
   el.style.setProperty("--lx", R(-4, 4) + "px");
 };
+let scrolling = false, scrollTimer = 0, queued = false;
 const syncHover = () => {
-  if (!ptr) return;
+  if (!ptr || scrolling) return; // pendant un défilement on ne calcule rien (voir plus bas)
   const el = document.elementFromPoint(ptr.x, ptr.y)?.closest?.(".stone") ?? null;
   if (el !== lit) {
     lit?.classList.remove("lit"); lit = el;
@@ -23,12 +24,24 @@ const syncHover = () => {
   const l = linkAt(ptr.x, ptr.y);
   if (l !== hot) { hot?.classList.remove("hot"); l?.classList.add("hot"); hot = l; if (l && "tilt" in l.dataset) tilt(l); }
 };
-addEventListener("pointermove", (e) => { if (e.pointerType !== "touch") { ptr = { x: e.clientX, y: e.clientY }; syncHover(); } });
-addEventListener("scroll", syncHover, { passive: true });
+// au plus un calcul par image, et aucun pendant un défilement: les effets de survol (filtres sur de grandes images, ombres, contours)
+// qui se déclenchaient sur chaque carte qui passait sous la souris faisaient ramer. On les coupe, puis on recalcule 140 ms après l'arrêt.
+const scheduleSync = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; syncHover(); }); } };
+addEventListener("pointermove", (e) => { if (e.pointerType !== "touch") { ptr = { x: e.clientX, y: e.clientY }; scheduleSync(); } });
+addEventListener("scroll", () => {
+  if (!scrolling) {
+    scrolling = true; document.documentElement.classList.add("scrolling");
+    lit?.classList.remove("lit"); hot?.classList.remove("hot"); lit = hot = null;
+  }
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => { scrolling = false; document.documentElement.classList.remove("scrolling"); syncHover(); }, 140);
+}, { passive: true });
 document.documentElement.addEventListener("pointerleave", () => { ptr = null; lit?.classList.remove("lit"); hot?.classList.remove("hot"); lit = hot = null; });
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const fmtDate = (dt) => { const [y, m, dd] = (dt || "").split("-"); return [dd && +dd, m && MONTHS[+m - 1], y].filter(Boolean).join(" "); };
 // carte "pierre" (discography + suggestions): pochette + titre + nb de tracks = lien vers la page du projet; boutons externes optionnels
 const card = (it, links = []) => `<article class="stone c"><a class="cardlink" href="release.html?r=${it.id}">${it.cover ? `<img src="${it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
-  <h3>${it.title}</h3><small>${it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "&nbsp;"}</small></a>
+  <h3>${it.title}</h3><small>${[it.tracks && `${it.tracks} track${it.tracks > 1 ? "s" : ""}`, fmtDate(it.date)].filter(Boolean).join(" · ") || "&nbsp;"}</small></a>
   ${links.length ? `<div class="btns">${links.map(([k, l]) => btn(it[k], l)).join("")}</div>` : ""}</article>`;
 const stagger = (el) => [...el.children].forEach((c, i) => c.style.setProperty("--i", Math.min(i, 14))); // apparition en cascade (voir .stone.c en CSS)
 const rails = new Map(); // .grid -> refresh() du carrousel (voir plus bas)
@@ -74,8 +87,7 @@ const pages = {
     if (!g) { root.innerHTML = back + "<p>This release does not exist.</p>"; return; }
     const [key, label, pk, pname] = g, it = DATA[key].find((x) => x.id === id);
     document.title = `${it.title} \u2014 1300SAINT`;
-    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const fmt = (dt) => { const [y, m, dd] = (dt || "").split("-"); return [dd && +dd, m && MONTHS[+m - 1], y].filter(Boolean).join(" "); };
+    const fmt = fmtDate;
     const tr = it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "";
     // length: durée du son, ou du projet en entier (texte libre dans data.js, ex "2:41" ou "1h 12min")
     const meta = [["Type", key === "releases" ? it.type || "Single" : label], ["Released", fmt(it.date)], ["Tracks", tr], ["Length", it.length]].filter(([, v]) => v);
@@ -86,7 +98,7 @@ const pages = {
     const sp = url(it.spotify), scu = url(it.soundcloud);
     if (sp?.hostname === "open.spotify.com") {
       const p = sp.pathname.split("/").filter((x) => x && !x.startsWith("intl-"));
-      if (["album", "track", "playlist"].includes(p[0]) && p[1]) embed = { src: `https://open.spotify.com/embed/${p[0]}/${p[1]}`, h: p[0] === "track" ? 152 : 352, from: "Spotify" };
+      if (["album", "track", "playlist"].includes(p[0]) && p[1]) embed = { src: `https://open.spotify.com/embed/${p[0]}/${p[1]}`, uri: `spotify:${p[0]}:${p[1]}`, h: p[0] === "track" || it.tracks === 1 ? 152 : 352, from: "Spotify" };
     }
     if (!embed && scu?.hostname === "soundcloud.com" && scu.pathname.split("/").filter(Boolean).length >= 2 && !scu.pathname.startsWith("/search"))
       embed = { src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(it.soundcloud)}&color=%239b0f16&visual=false`, h: 166, from: "SoundCloud" };
@@ -96,7 +108,9 @@ const pages = {
     const others = groups.filter(([k]) => k !== key).flatMap(([k]) => DATA[k]);
     const picks = [...shuffle(DATA[key].filter((x) => x.id !== it.id)).slice(0, 2), ...shuffle(others).slice(0, 2)];
 
-    const songs = (it.songs || []).map((x) => (typeof x === "string" ? { title: x } : x));
+    const songs = (it.songs || []).map((x) => (typeof x === "string" ? { title: x } : Array.isArray(x) ? { title: x[0], length: x[1], id: x[2] } : x)); // "titre" | ["titre", "2:41", "idSpotify"] | {title, length, url}
+    const playable = embed?.from === "Spotify" && songs.length >= 3 && songs.every((x) => x.id); // albums / EP: chaque ligne lance son morceau
+    if (playable) embed.h = 152; // lecteur compact: la liste, c'est la tracklist de la page
     root.innerHTML = `${back}
       <div class="rel">
         ${it.cover ? `<button class="cover-btn" data-tilt aria-label="Enlarge the cover"><img class="rel-cover" src="${it.cover}" alt="${it.title} cover" width="640" height="640"></button>` : ""}
@@ -108,18 +122,30 @@ const pages = {
         </div>
       </div>
       <section><h2>Preview</h2>
-        <div class="player" id="player">${embed
-          ? `<button class="rune" id="load">&#9654;&nbsp; Load the player</button><small>Loads content from ${embed.from}</small>`
+        <div class="player${embed ? " live" : ""}" id="player">${embed?.uri
+          ? `<div id="spembed"></div>`
+          : embed
+          ? `<iframe src="${embed.src}" height="${embed.h}" title="${it.title} — ${embed.from} player" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`
           : `<small>No preview yet for this one.</small>`}</div>
       </section>
-      ${songs.length ? `<section><h2>Tracklist</h2><ol class="tracks">${songs.map((x) => `<li>${x.url ? `<a href="${x.url}" target="_blank" rel="noopener">${x.title}</a>` : x.title}</li>`).join("")}</ol></section>` : ""}
+      ${songs.length && (playable || it.type !== "Single") ? `<section><h2>Tracklist</h2><ol class="tracks">${songs.map((x, n) => `<li>${playable
+        ? `<button class="trk" data-id="${x.id}"><span class="n">${String(n + 1).padStart(2, "0")}</span><span class="t">${x.title}</span><span class="len">${x.length || ""}</span></button>`
+        : `<span class="n">${String(n + 1).padStart(2, "0")}</span><span class="t">${x.url ? `<a href="${x.url}" target="_blank" rel="noopener">${x.title}</a>` : x.title}</span>${x.length ? `<span class="len">${x.length}</span>` : ""}`}</li>`).join("")}</ol></section>` : ""}
       <section><h2>You might also like</h2><div class="grid" id="suggest">${picks.map((x) => card(x)).join("")}</div></section>`;
     stagger($("#suggest"));
-    $("#load")?.addEventListener("click", () => {
-      const f = document.createElement("iframe");
-      f.src = embed.src; f.height = embed.h; f.title = `${it.title} \u2014 ${embed.from} player`; f.allow = "autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture";
-      $("#player").replaceChildren(f);
-    });
+    if (embed?.uri) { // lecteur Spotify piloté par l'API officielle (https://developer.spotify.com/documentation/embeds)
+      let ctrl = null, current = null;
+      window.onSpotifyIframeApiReady = (api) => api.createController($("#spembed"), { uri: embed.uri, width: "100%", height: embed.h }, (c) => { ctrl = c; });
+      const api = document.createElement("script"); api.src = "https://open.spotify.com/embed/iframe-api/v1"; api.async = true; document.body.append(api);
+      $(".tracks")?.addEventListener("click", (e) => {
+        const b = e.target.closest(".trk"); if (!b) return;
+        if (!ctrl) { window.open(`https://open.spotify.com/track/${b.dataset.id}`, "_blank", "noopener"); return; } // API pas (encore) chargée: on ouvre Spotify
+        document.querySelectorAll(".trk.on").forEach((x) => x.classList.remove("on")); b.classList.add("on");
+        if (current === b.dataset.id) ctrl.togglePlay(); else { current = b.dataset.id; ctrl.loadUri(`spotify:track:${b.dataset.id}`); ctrl.play(); }
+        const pr = $("#player").getBoundingClientRect();
+        if (pr.top < 90 || pr.bottom > innerHeight) $("#player").scrollIntoView({ block: "center", behavior: "smooth" }); // le lecteur n'est pas visible: on y va
+      });
+    }
     // clic sur la cover: elle s'affiche en grand (clic, Échap ou re-clic pour fermer)
     $(".cover-btn")?.addEventListener("click", () => {
       const box = document.createElement("div");
@@ -238,8 +264,16 @@ if (matchMedia("(pointer:fine)").matches) {
     return null;
   };
   linkAt = linkUnder;
+  // dans un lecteur intégré (iframe Spotify/SoundCloud) la page ne reçoit plus les mouvements de la souris: la croix s'effacerait
+  // figée au bord. On la cache à l'entrée (le curseur normal prend le relais dans le lecteur) et on la remet sous la souris à la sortie.
+  let overFrame = false;
+  const place = (e) => { cur.style.display = "block"; cur.style.transform = `translate(${e.clientX - cur.width / 2}px,${e.clientY - cur.height / 2}px)`; };
+  document.addEventListener("pointerover", (e) => {
+    overFrame = e.target.tagName === "IFRAME";
+    if (overFrame) cur.style.display = "none"; else if (on && e.pointerType !== "touch") place(e);
+  });
   addEventListener("pointermove", (e) => {
-    if (!on) return;
+    if (!on || overFrame) return;
     cur.style.display = "block";
     cur.style.transform = `translate(${e.clientX - cur.width / 2}px,${e.clientY - cur.height / 2}px)`;
   });
