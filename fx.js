@@ -204,6 +204,13 @@ const pages = {
       ${sections.map(([t, arr, links]) => `<section><h2>${t}</h2><div class="grid">${arr.map((x) => card(x, links)).join("")}</div></section>`).join("")}`;
     root.querySelectorAll(".grid").forEach(stagger);
   },
+  notfound() {
+    // page 404: GitHub Pages l'affiche pour toute adresse qui n'existe pas
+    const all = [...DATA.releases, ...DATA.soundcloud, ...DATA.features], pick = all[Math.floor(Math.random() * all.length)];
+    $("#nf").innerHTML = `<div class="nf"><h1 class="glitch" data-t="404">404</h1><p class="sub">Lost in the graveyard</p><div class="rip" aria-hidden="true"><i></i><i></i><i></i></div>
+      <p class="nf-text">This page doesn't exist, or it was buried a long time ago.</p>
+      <div class="btns"><a class="rune" href="index.html">Back home</a><a class="rune" href="release.html?r=${pick.id}">Dig up a random track</a><a class="rune" href="discographie.html">Discography</a></div></div>`;
+  },
   clips() {
     // carte "écran": la miniature remplit toute la carte, titre en bas, bouton lecture au centre; toute la carte est un lien
     $("#clips").innerHTML = DATA.clips.map((c) => `<article class="stone clip"><a href="${c.url}" target="_blank" rel="noopener" title="${c.title}">
@@ -511,3 +518,34 @@ addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "p
   }
   document.body.prepend(box);
 })();
+
+// ---- barre de défilement à l'image du site: une fine ligne + une croix qui descend. Le défilement natif est masqué en CSS. ----
+(function scrollbar() {
+  const sb = document.createElement("div");
+  sb.id = "sb"; sb.hidden = true; sb.innerHTML = '<i class="sb-line"></i><button class="sb-thumb" aria-label="Page position: drag to scroll"></button>';
+  document.body.append(sb);
+  const thumb = sb.querySelector(".sb-thumb"); let drag = null, hideT = 0;
+  const metrics = () => ({ max: document.documentElement.scrollHeight - innerHeight, track: sb.clientHeight - thumb.offsetHeight });
+  const update = () => {
+    const { max, track } = metrics(); sb.hidden = max <= 4;       // page trop courte pour défiler: rien à montrer
+    if (!sb.hidden) thumb.style.transform = `translateY(${Math.min(1, Math.max(0, scrollY / max)) * track}px)`;
+  };
+  const wake = () => { sb.classList.add("on"); clearTimeout(hideT); hideT = setTimeout(() => sb.classList.remove("on"), 1400); };   // discrète au repos, visible quand on défile
+  addEventListener("scroll", () => { update(); wake(); }, { passive: true });
+  addEventListener("resize", update);
+  new ResizeObserver(update).observe(document.body);                // le contenu change de hauteur (cartes qui arrivent, filtres...)
+  thumb.addEventListener("pointerdown", (e) => { drag = { y: e.clientY, s: scrollY }; thumb.setPointerCapture(e.pointerId); e.preventDefault(); });
+  thumb.addEventListener("pointermove", (e) => {
+    if (!drag) return; const { max, track } = metrics();
+    scrollTo({ top: drag.s + ((e.clientY - drag.y) * max) / track, behavior: "instant" });
+  });
+  thumb.addEventListener("pointerup", () => (drag = null));
+  sb.addEventListener("pointerdown", (e) => {                        // un clic sur la ligne saute à cet endroit de la page
+    if (e.target === thumb) return;
+    const { max, track } = metrics(), top = ((e.clientY - sb.getBoundingClientRect().top - thumb.offsetHeight / 2) / track) * max;
+    scrollTo({ top: Math.min(max, Math.max(0, top)), behavior: "smooth" });
+  });
+  sb.addEventListener("pointerenter", wake);
+  update(); setTimeout(update, 600);
+})();
+

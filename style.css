@@ -341,3 +341,22 @@ button.rune { cursor:pointer; }
 html.plain body { background:var(--bg); }
 html.plain #crosses, html.plain .fog { display:none; }
 html.plain body::after { display:none; }
+
+/* barre de défilement masquée (le défilement marche toujours: molette, trackpad, tactile, clavier) */
+html { scrollbar-width:none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display:none; width:0; height:0; }
+
+/* la barre de défilement du site: ligne fine + croix (le défilement natif est masqué plus haut) */
+#sb { position:fixed; right:5px; top:104px; bottom:20px; width:18px; z-index:40; opacity:.4; transition:opacity .4s; filter:drop-shadow(0 0 4px color-mix(in srgb, var(--blood) 60%, transparent)); }
+#sb[hidden] { display:none; }
+#sb.on, #sb:hover { opacity:1; }
+.sb-line { position:absolute; left:50%; top:0; bottom:0; width:1px; background:linear-gradient(transparent, #4a4640 8%, #4a4640 92%, transparent); }
+.sb-thumb { position:absolute; left:0; top:0; width:18px; height:32px; padding:0; border:0; background:var(--blood); will-change:transform; touch-action:none;
+  -webkit-mask:url(img/cross.png) center / contain no-repeat; mask:url(img/cross.png) center / contain no-repeat; transition:background .3s; }
+.sb-thumb.hot, .sb-thumb:active { background:var(--bone); }
+@media (pointer:coarse) { #sb { display:none; } }
+
+/* page 404 */
+.nf { text-align:center; padding:1rem 0 4rem; }
+.nf .glitch { margin-top:3rem; }
+.nf-text { margin:0 auto 2.2rem; max-width:34rem; color:var(--dim); }
