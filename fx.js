@@ -90,7 +90,7 @@ const pages = {
     const fmt = fmtDate;
     const tr = it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "";
     // length: durée du son, ou du projet en entier (texte libre dans data.js, ex "2:41" ou "1h 12min")
-    const meta = [["Type", key === "releases" ? it.type || "Single" : label], ["Released", fmt(it.date)], ["Tracks", tr], ["Length", it.length]].filter(([, v]) => v);
+    const meta = [["Artist", it.artist], ["With", it.with?.join(", ")], ["Type", key === "releases" ? it.type || "Single" : label], ["Released", fmt(it.date)], ["Tracks", tr], ["Length", it.length]].filter(([, v]) => v);
 
     // lecteur d'extraits: Spotify (album/titre) ou SoundCloud, si on a le lien direct. Rien n'est charge chez eux avant le clic.
     const url = (u) => { try { return new URL(u); } catch { return null; } };
