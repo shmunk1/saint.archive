@@ -4,15 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Clips — 1300SAINT</title>
-<script>try{sessionStorage.t&&document.documentElement.classList.add("tr")}catch(e){}</script>
+<script>try{sessionStorage.t&&document.documentElement.classList.add("tr");localStorage.font==="1"&&document.documentElement.classList.add("legible");const k=JSON.parse(localStorage.colors||"{}");for(const n in k)document.documentElement.style.setProperty("--"+n,k[n])}catch(e){}</script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="clips">
 <div class="fog"></div>
-<nav><a href="index.html">Home</a><a href="discographie.html">Discography</a><a class="on" href="clips.html">Clips</a></nav>
+<header class="top">
+  <a class="brand" href="index.html"><img src="img/cross.png" alt=""><span>1300SAINT</span></a>
+  <nav><a href="index.html">Home</a><a href="discographie.html">Discography</a><a class="on" href="clips.html">Clips</a></nav>
+  <div class="ext"></div>
+</header>
 <main>
   <h2>Clips</h2>
-  <div id="clips" class="grid"></div>
+  <div id="clips" class="grid flat"></div>
 </main>
 <footer>Unofficial fan site</footer>
 <script src="data.js"></script><script src="fx.js"></script>
