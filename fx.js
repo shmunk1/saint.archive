@@ -404,7 +404,7 @@ const root = document.documentElement.style;
 addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "px"); root.setProperty("--my", e.clientY + "px"); });
 
 (function lightning() { // random lightning
-  setTimeout(() => { if (lightningOn) { document.body.classList.add("flash"); setTimeout(() => document.body.classList.remove("flash"), 400); } lightning(); }, 8000 + Math.random() * 15000);
+  setTimeout(() => { if (lightningOn) { document.documentElement.classList.add("flash"); setTimeout(() => document.documentElement.classList.remove("flash"), 400); } lightning(); }, 8000 + Math.random() * 15000);
 })();
 
 // ---- page transition: a creeping shadow sweeps across the screen, then we navigate ----
