@@ -392,3 +392,38 @@ html.lite .glitch::before, html.lite .glitch::after { display:none; }
 html.lite #xcur { mix-blend-mode:normal; filter:none; }
 html.lite .stone.c, html.lite .grid.row > .stone.c { animation-name:card-in-lite; }
 @keyframes card-in-lite { from { opacity:0; transform:translateY(30px); } }
+
+
+/* ===== responsive / tactile ===== */
+html { -webkit-tap-highlight-color:transparent; -webkit-text-size-adjust:100%; }
+.yr-years { flex-wrap:wrap; }
+#gear { right:max(18px, env(safe-area-inset-right)); bottom:max(18px, env(safe-area-inset-bottom)); }
+#panel { right:max(18px, env(safe-area-inset-right)); bottom:calc(max(18px, env(safe-area-inset-bottom)) + 56px); max-height:calc(100dvh - 120px); }
+footer { padding-bottom:calc(5rem + env(safe-area-inset-bottom)); }   /* l'engrenage ne recouvre plus le texte du bas */
+@media (max-width:900px) { header.top { padding-top:max(.7rem, env(safe-area-inset-top)); } }
+@media (max-width:640px) {
+  main { padding:1.2rem 1rem 4rem; }
+  h2 { font-size:1.9rem; margin:2.2rem 0 1rem; }
+  .sub { letter-spacing:.22em; font-size:.75rem; }
+  .glitch { margin:2.4rem 0 .8rem; }
+  nav a { padding:.7rem .2rem .9rem; }                                  /* zone de toucher plus grande */
+  #clips, .grid.flat { grid-template-columns:repeat(2, 1fr); gap:.8rem; }       /* clips: 2 par ligne au lieu d'une colonne de 36 cartes */
+  .stone.clip .cap { font-size:.9rem; padding:1.6rem .6rem .5rem; }
+  .stone.clip .play { width:2.5rem; height:2.5rem; }
+  .stone.clip .play::before { width:.75rem; height:.9rem; }
+  .filters { gap:.6rem; }
+  .filters .btn { font-size:1rem; }
+  .yr-head h1 { font-size:clamp(3.4rem, 22vw, 5rem); }
+  .lightbox p { font-size:1.25rem; padding:0 1rem; text-align:center; }
+  .tracks .trk, .tracks li { min-height:2.8rem; }
+}
+@media (max-width:380px) { .brand { font-size:1.15rem; } nav { gap:.9rem; font-size:.64rem; letter-spacing:.12em; } .stat { padding:.5rem .8rem; } }
+@media (max-height:480px) and (orientation:landscape) { header.top { position:static; } .glitch { margin:1.4rem 0 .6rem; } }
+/* écrans tactiles: pas de survol, donc les pochettes grises ne se coloreraient jamais. On les montre en couleur, et on donne un retour au toucher */
+@media (pointer:coarse) {
+  .stone.clip img, .grid.row .stone.c img { filter:none; }
+  .stone.c.mid img { filter:none; }
+  .stone.c.mid { border-color:var(--blood); }
+  .stone:active { border-color:var(--blood); }
+  .rune:active, .btn:active { background:linear-gradient(color-mix(in srgb, var(--blood) 35%, #1a1a18), #0b0b0a); }
+}

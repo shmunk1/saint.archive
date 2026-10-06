@@ -228,6 +228,7 @@ const pages = {
 try { pages[document.body.dataset.page](); } catch (e) { console.error(e); } // une erreur de contenu ne doit pas bloquer le reste (engrenage, transitions...)
 // ---- carrousel 3D: chaque .grid devient un cylindre de cartes. Glisser / swipe / molette horizontale / flèches clavier / clic sur une carte du côté ----
 function carousel(grid) {
+  const coarse = matchMedia("(pointer:coarse)").matches; // tactile: la carte du milieu passe en couleur (pas de survol)
   const R = 560, STEP = .42, SPACING = 170; // rayon, angle entre 2 cartes (rad), px de glissement pour avancer d'une carte
   // le carrousel tourne en boucle: pos/target ne sont pas bornés, wrap() donne la distance (signée, la plus courte) d'une carte au centre
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -245,7 +246,7 @@ function carousel(grid) {
     c.style.opacity = clamp(1 - (ad - 1.9) / 1.6, 0, 1);
     c.style.zIndex = 100 - Math.round(ad * 10);
     c.style.pointerEvents = ad > 3 ? "none" : "";
-  }); syncHover(); };
+  }); if (coarse) cards.forEach((c, i) => c.classList.toggle("mid", Math.abs(wrap(i - pos)) < .5)); syncHover(); };
   const tick = () => {
     raf = 0; pos += (target - pos) * (reduce ? 1 : .14);
     if (Math.abs(target - pos) < .003) pos = target;
