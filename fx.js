@@ -464,6 +464,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   const ctx = c.getContext("2d");
   const MS = 600, order = ["index.html", "discographie.html", "clips.html"];
   const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return /\/release\/|^release\.html$/.test(path) || f === "release.html" ? 1.5 : /\/year\//.test(path) || f === "year.html" ? .5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
+  const SH = touch ? 8 : 4; // hauteur d'une bande de l'ombre (plus épaisse sur téléphone: moins de dégradés à dessiner)
   let seed, strips = [], marks = [], sweep = 1, dist = 0, busy = false;
   const warmed = new Set(), warm = (u) => { if (!warmed.has(u)) { warmed.add(u); fetch(u).catch(() => {}); } };   // remplit le cache HTTP: la navigation qui suit n'attend plus le réseau
   addEventListener("pointerdown", (e) => { const a = e.target.closest?.("a"); if (a && a.origin === location.origin && !a.target) warm(a.href); }, { passive: true });
@@ -475,7 +476,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   // (certaines avancent bien plus vite = tentacules). Un dégradé par bande, pas de sprite: très léger.
   function build(dir) { // dir "l": l'ombre avance vers la gauche; sinon vers la droite
     seed = 7; sweep = dir === "l" ? -1 : 1;
-    const SH = touch ? 8 : 4, W = (c.width = innerWidth >> (touch ? 2 : 1)), H = (c.height = innerHeight >> (touch ? 2 : 1)), n = Math.ceil(H / SH); // téléphone: moitié moins de bandes et de pixels
+    const W = (c.width = innerWidth >> (touch ? 2 : 1)), H = (c.height = innerHeight >> (touch ? 2 : 1)), n = Math.ceil(H / SH); // téléphone: moitié moins de bandes et de pixels
     const spikes = Array.from({ length: 8 }, () => ({ y: rnd() * H, w: H * (.012 + rnd() * .03), l: .15 + rnd() * .3 }));
     const ph = [rnd() * 6.28, rnd() * 6.28];
     strips = Array.from({ length: n }, (_, i) => {

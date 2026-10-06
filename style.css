@@ -55,7 +55,7 @@ nav a.hot::after, nav a.on::after { transform:translateX(-50%) scale(1); }
 .ext a { color:var(--dim); }
 .ext a.hot { color:var(--bone); text-shadow:0 0 8px var(--blood); }
 @media (max-width:900px) { .ext { display:none; } header.top { grid-template-columns:1fr auto; padding:.7rem 1rem; } .brand { font-size:1.3rem; } .brand img { height:26px; } nav { gap:1.2rem; font-size:.7rem; } }
-@media (max-width:560px) { header.top { grid-template-columns:auto 1fr; justify-items:start; gap:.4rem; } header.top > nav { display:none; } .brand { justify-self:start; } }
+@media (max-width:560px) { header.top { grid-template-columns:1fr auto 1fr; gap:.4rem; } header.top > nav { display:none; } .brand { justify-self:center; } #burger { justify-self:start; } }
 
 main { position:relative; z-index:10; max-width:1100px; margin:0 auto; padding:2rem 1.2rem 6rem; }
 h1, h2 { font-family:var(--display); font-weight:700; color:var(--bone); letter-spacing:.04em; }
