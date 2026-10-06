@@ -1,4 +1,5 @@
 const $ = (s) => document.querySelector(s);
+const touch = matchMedia("(pointer:coarse)").matches; // téléphone / tablette: pas de souris, donc pas de survol ni de lampe torche, et des effets allégés (voir style.css)
 const a = DATA.artist;
 const btn = (href, label) => `<a class="rune" href="${href}" target="_blank" rel="noopener">${label}</a>`;
 // Le :hover du navigateur ne se met pas à jour quand la page (ou le carrousel) bouge sous une souris immobile.
@@ -29,6 +30,7 @@ const syncHover = () => {
 const scheduleSync = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; syncHover(); }); } };
 addEventListener("pointermove", (e) => { if (e.pointerType !== "touch") { ptr = { x: e.clientX, y: e.clientY }; scheduleSync(); } });
 addEventListener("scroll", () => {
+  if (touch) return; // au doigt il n'y a pas de survol à suspendre: ne pas basculer une classe sur toute la page à chaque geste
   if (!scrolling) {
     scrolling = true; document.documentElement.classList.add("scrolling");
     lit?.classList.remove("lit"); hot?.classList.remove("hot"); lit = hot = null; onHot(null);
@@ -50,6 +52,24 @@ const stone = (inner) => `<article class="stone">${inner}</article>`;
 // ---- header: liens vers les plateformes (à droite) ----
 $(".ext").innerHTML = [["Spotify", a.links.spotify], ["SoundCloud", a.links.soundcloud], ["YouTube", a.links.youtube], ["Instagram", a.links.instagram]]
   .map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`).join("");
+
+// ---- menu burger (téléphone): bouton en haut à gauche qui ouvre la navigation + les plateformes; en CSS, la barre de navigation est cachée sous 560 px ----
+(function burger() {
+  const top = $("header.top"), nav = top?.querySelector("nav"); if (!nav) return;
+  const b = document.createElement("button"), m = document.createElement("div"), wide = matchMedia("(min-width:561px)");
+  b.id = "burger"; b.setAttribute("aria-label", "Menu"); b.setAttribute("aria-expanded", "false"); b.setAttribute("aria-controls", "menu"); b.innerHTML = "<i></i><i></i><i></i>";
+  m.id = "menu"; m.hidden = true; m.innerHTML = `<nav>${nav.innerHTML}</nav><div class="menu-ext">${$(".ext").innerHTML}</div>`;
+  top.prepend(b); document.body.append(m);
+  const set = (open) => {
+    if (open) { scrollTo({ top: 0, behavior: "instant" }); m.style.top = top.getBoundingClientRect().bottom + "px"; }
+    m.hidden = !open; b.setAttribute("aria-expanded", open); document.documentElement.classList.toggle("menu-open", open);
+  };
+  b.onclick = () => set(m.hidden);
+  m.addEventListener("click", (e) => { if (e.target.closest("a")) set(false); });
+  addEventListener("keydown", (e) => e.key === "Escape" && !m.hidden && set(false));
+  wide.addEventListener("change", () => wide.matches && set(false));
+  addEventListener("pageshow", () => set(false)); // retour arrière: pas de menu resté ouvert
+})();
 
 // ---- per-page rendering (data-page on <body>) ----
 const pages = {
@@ -299,7 +319,8 @@ function carousel(grid) {
   refresh();
   return refresh;
 }
-document.querySelectorAll(".grid:not(.flat)").forEach((g) => rails.set(g, carousel(g))); // .flat = grille normale (page clips)
+const railMode = document.body.dataset.page === "year" && matchMedia("(max-width:640px)").matches; // année sur téléphone: défilement horizontal natif au lieu du cylindre 3D
+document.querySelectorAll(".grid:not(.flat)").forEach((g) => (railMode ? g.classList.add("rail") : rails.set(g, carousel(g)))); // .flat = grille normale (page clips)
 
 // ---- cross cursor: hitbox = whole image (souris uniquement) ----
 let setCursor = () => {}, hasCursor = false; // branchés plus bas par le bouton réglages
@@ -423,11 +444,11 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
 })();
 
 // ---- atmosphere ----
-const lamp = document.createElement("div"); lamp.id = "lamp"; lamp.setAttribute("aria-hidden", "true"); document.body.prepend(lamp);
+if (!touch) { const lamp = document.createElement("div"); lamp.id = "lamp"; lamp.setAttribute("aria-hidden", "true"); document.body.prepend(lamp);
 let lampX = innerWidth / 2, lampY = innerHeight * .4, lampRaf = 0;
 const moveLamp = () => { lampRaf = 0; lamp.style.transform = `translate3d(${lampX - 260}px,${lampY - 260}px,0)`; };
 moveLamp();
-addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; lampRaf ||= requestAnimationFrame(moveLamp); });
+addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; lampRaf ||= requestAnimationFrame(moveLamp); }); }
 
 (function lightning() { // random lightning
   setTimeout(() => { if (lightningOn && !document.documentElement.classList.contains("lite")) { document.documentElement.classList.add("flash"); setTimeout(() => document.documentElement.classList.remove("flash"), 400); } lightning(); }, 8000 + Math.random() * 15000);
@@ -444,6 +465,9 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   const MS = 600, order = ["index.html", "discographie.html", "clips.html"];
   const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return /\/release\/|^release\.html$/.test(path) || f === "release.html" ? 1.5 : /\/year\//.test(path) || f === "year.html" ? .5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
   let seed, strips = [], marks = [], sweep = 1, dist = 0, busy = false;
+  const warmed = new Set(), warm = (u) => { if (!warmed.has(u)) { warmed.add(u); fetch(u).catch(() => {}); } };   // remplit le cache HTTP: la navigation qui suit n'attend plus le réseau
+  addEventListener("pointerdown", (e) => { const a = e.target.closest?.("a"); if (a && a.origin === location.origin && !a.target) warm(a.href); }, { passive: true });
+  if (!navigator.connection?.saveData) (window.requestIdleCallback || setTimeout)(() => ["index.html", "discographie.html", "clips.html"].forEach((p) => warm(new URL(p, document.baseURI).href)));
   const crossImg = new Image(); crossImg.src = "img/cross.png";
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
@@ -451,14 +475,14 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   // (certaines avancent bien plus vite = tentacules). Un dégradé par bande, pas de sprite: très léger.
   function build(dir) { // dir "l": l'ombre avance vers la gauche; sinon vers la droite
     seed = 7; sweep = dir === "l" ? -1 : 1;
-    const W = (c.width = innerWidth >> 1), H = (c.height = innerHeight >> 1), n = Math.ceil(H / 4);
+    const SH = touch ? 8 : 4, W = (c.width = innerWidth >> (touch ? 2 : 1)), H = (c.height = innerHeight >> (touch ? 2 : 1)), n = Math.ceil(H / SH); // téléphone: moitié moins de bandes et de pixels
     const spikes = Array.from({ length: 8 }, () => ({ y: rnd() * H, w: H * (.012 + rnd() * .03), l: .15 + rnd() * .3 }));
     const ph = [rnd() * 6.28, rnd() * 6.28];
     strips = Array.from({ length: n }, (_, i) => {
       const y = (i + .5) / n * H;
       let sp = 0; for (const k of spikes) sp += k.l * Math.exp(-(((y - k.y) / k.w) ** 2));
       const lead = (.05 * Math.sin(y / H * 14.5 + ph[0]) + .035 * Math.sin(y / H * 36 + ph[1]) + sp) * W;
-      return { y: i * 4, lead, fe: W * .2 * (1 + 2 * Math.min(sp, .5)) }; // fe: largeur du flou du bord (plus long sur les tentacules)
+      return { y: i * SH, lead, fe: W * .2 * (1 + 2 * Math.min(sp, .5)) }; // fe: largeur du flou du bord (plus long sur les tentacules)
     });
     dist = W + Math.max(...strips.map((t) => t.fe)) + W * .1; // distance parcourue pour tout recouvrir
     // croix qui surgissent dans l'ombre au passage du front (grille décalée: réparties partout)
@@ -481,7 +505,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
       let last = 0;
       const stop = (v, al) => { last = Math.max(last, Math.min(1, Math.max(0, (v - S0) / (S1 - S0)))); g.addColorStop(last, `rgba(0,0,0,${al})`); };
       stop(T - t.fe, 0); stop(T, 1); stop(D - t.fe, 1); stop(D, 0);
-      ctx.fillStyle = g; ctx.fillRect(0, t.y, W, 4);
+      ctx.fillStyle = g; ctx.fillRect(0, t.y, W, SH);
     });
     const clamp = (v) => Math.min(1, Math.max(0, v));
     for (const m of marks) { // les croix apparaissent avec l'ombre et s'effacent avec elle
@@ -523,6 +547,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
     e.preventDefault(); busy = true;
     const dir = a.dataset.dir || (pageIdx(a.pathname) > pageIdx(location.pathname) ? "l" : "r");
     try { sessionStorage.t = dir; } catch {}
+    warm(a.href); // la page suivante se télécharge pendant que l'ombre avance: le temps noir entre les deux pages raccourcit
     build(dir);
     run((u) => render(u, 0), MS, () => (location.href = a.href));
   });

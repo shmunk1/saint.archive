@@ -55,7 +55,7 @@ nav a.hot::after, nav a.on::after { transform:translateX(-50%) scale(1); }
 .ext a { color:var(--dim); }
 .ext a.hot { color:var(--bone); text-shadow:0 0 8px var(--blood); }
 @media (max-width:900px) { .ext { display:none; } header.top { grid-template-columns:1fr auto; padding:.7rem 1rem; } .brand { font-size:1.3rem; } .brand img { height:26px; } nav { gap:1.2rem; font-size:.7rem; } }
-@media (max-width:560px) { header.top { grid-template-columns:1fr; justify-items:center; gap:0; } .brand { justify-self:center; } nav a::before { display:none; } nav a { padding:.4rem 0 .9rem; } }
+@media (max-width:560px) { header.top { grid-template-columns:auto 1fr; justify-items:start; gap:.4rem; } header.top > nav { display:none; } .brand { justify-self:start; } }
 
 main { position:relative; z-index:10; max-width:1100px; margin:0 auto; padding:2rem 1.2rem 6rem; }
 h1, h2 { font-family:var(--display); font-weight:700; color:var(--bone); letter-spacing:.04em; }
@@ -427,3 +427,42 @@ footer { padding-bottom:calc(5rem + env(safe-area-inset-bottom)); }   /* l'engre
   .stone:active { border-color:var(--blood); }
   .rune:active, .btn:active { background:linear-gradient(color-mix(in srgb, var(--blood) 35%, #1a1a18), #0b0b0a); }
 }
+
+/* menu burger (≤560 px): bouton en haut à gauche, trois barres qui deviennent une croix; le menu s'ouvre sous l'en-tête */
+#burger { display:none; position:relative; width:44px; height:44px; padding:0; margin-left:-.5rem; border:0; background:none; cursor:pointer; }
+#burger i { position:absolute; left:11px; right:11px; height:2px; background:var(--bone); border-radius:1px; transition:transform .3s var(--ease), opacity .2s; box-shadow:0 0 6px color-mix(in srgb, var(--blood) 60%, transparent); }
+#burger i:nth-child(1) { top:14px; } #burger i:nth-child(2) { top:21px; } #burger i:nth-child(3) { top:28px; }
+#burger[aria-expanded=true] i:nth-child(1) { transform:translateY(7px) rotate(45deg); }
+#burger[aria-expanded=true] i:nth-child(2) { opacity:0; }
+#burger[aria-expanded=true] i:nth-child(3) { transform:translateY(-7px) rotate(-45deg); }
+#menu { display:none; }
+@media (max-width:560px) {
+  #burger { display:block; }
+  #menu:not([hidden]) { position:fixed; left:0; right:0; bottom:0; z-index:29; display:flex; flex-direction:column; justify-content:center; gap:2.4rem; padding:1.5rem 2rem calc(4rem + env(safe-area-inset-bottom));
+    background:rgba(5,5,5,.97); animation:menu-in .3s var(--ease); overflow-y:auto; }
+  #menu nav { display:flex; flex-direction:column; align-items:center; gap:.4rem; font-size:1.05rem; }
+  #menu nav a { padding:.7rem 1rem; }
+  #menu nav a::before { display:inline; margin:0 .8rem 0 0; font-size:.7rem; }
+  #menu nav a::after { display:none; }
+  .menu-ext { display:flex; flex-wrap:wrap; justify-content:center; gap:.8rem 1.6rem; padding-top:1.6rem; border-top:1px solid #2a2a26; font-size:.75rem; letter-spacing:.2em; text-transform:uppercase; }
+  .menu-ext a { color:var(--dim); padding:.4rem 0; }
+}
+html.menu-open { overflow:hidden; }
+@keyframes menu-in { from { opacity:0; transform:translateY(-10px); } }
+
+/* téléphone / tablette (pointeur tactile): on retire ce qui coûte cher à chaque image pendant le défilement
+   (grain animé en surimpression, flou derrière l'en-tête, lampe torche plein écran, lueur animée des croix) */
+@media (pointer:coarse) {
+  body::after { display:none; }
+  #lamp { display:none; }
+  body::before { content:""; position:fixed; inset:0; z-index:50; pointer-events:none; background:radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(0,0,0,var(--dark, .65)) 130%); }   /* vignette fixe à la place */
+  header.top { backdrop-filter:none; -webkit-backdrop-filter:none; background:rgba(0,0,0,.92); }
+  .lightbox { backdrop-filter:none; -webkit-backdrop-filter:none; }
+  #crosses img { animation:xdrift var(--d) ease-in-out infinite alternate; }
+}
+
+/* page année sur téléphone: chaque section défile à l'horizontale (balayage natif, sans JS) */
+.grid.rail { perspective:none; display:flex; gap:.9rem; overflow-x:auto; overflow-y:hidden; scroll-snap-type:x proximity; margin:1rem -1rem .4rem; padding:1rem 1rem 1.4rem;
+  scrollbar-width:none; scroll-padding:0 1rem; -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; touch-action:pan-x pan-y; }
+.grid.rail::-webkit-scrollbar { display:none; }
+.grid.rail > .stone { position:relative; left:auto; top:auto; margin:0; width:auto; flex:0 0 190px; scroll-snap-align:start; will-change:auto; backface-visibility:visible; }
