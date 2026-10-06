@@ -382,3 +382,13 @@ html.pre.pre-out .pre-x { transform:scale(1.15); transition:transform .7s; }
 @keyframes pre-fill { to { clip-path:inset(0 0 0 0); } }
 @keyframes pre-glow { to { filter:drop-shadow(0 0 28px var(--blood)); } }
 @keyframes pre-fallback { to { opacity:0; visibility:hidden; } }
+
+/* mode léger (engrenage, ou détecté tout seul sur une machine qui rame): on coupe ce qui coûte le plus au processeur graphique */
+html.lite body::after, html.lite .fog, html.lite #crosses, html.lite::after { display:none; }
+html.lite .top, html.lite .lightbox { backdrop-filter:none; -webkit-backdrop-filter:none; }
+html.lite .top { background:rgba(0,0,0,.93); }
+html.lite .brand img, html.lite .glitch, html.lite .glitch::before, html.lite .glitch::after { animation:none; }
+html.lite .glitch::before, html.lite .glitch::after { display:none; }
+html.lite #xcur { mix-blend-mode:normal; filter:none; }
+html.lite .stone.c, html.lite .grid.row > .stone.c { animation-name:card-in-lite; }
+@keyframes card-in-lite { from { opacity:0; transform:translateY(30px); } }

@@ -355,6 +355,7 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
     ${hasCursor ? '<label><span>Custom cursor</span><input type="checkbox" id="s-cur"></label>' : ""}
     <label><span>Lightning</span><input type="checkbox" id="s-light"></label>
     <label><span>Plain black background</span><input type="checkbox" id="s-plain"></label>
+    <label><span>Performance mode</span><input type="checkbox" id="s-lite"></label>
     <label><span>Readable font</span><input type="checkbox" id="s-font"></label>
     <label>Brightness<input type="range" id="s-br" min="0" max="100"></label>`;
   document.body.append(g, p);
@@ -374,6 +375,20 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
   const pb = $("#s-plain"); // fond noir simple: ni croix, ni brume, ni grain, ni dégradé
   pb.checked = store.get("plain", "0") === "1";
   pb.onchange = () => { document.documentElement.classList.toggle("plain", pb.checked); store.set("plain", pb.checked ? "1" : "0"); };
+  const lt = $("#s-lite"); // mode léger: moins d'effets (grain, brume, flou, croix du fond, éclairs) pour les machines qui rament
+  lt.checked = store.get("lite", "0") === "1";
+  lt.onchange = () => { document.documentElement.classList.toggle("lite", lt.checked); store.set("lite", lt.checked ? "1" : "0"); store.set("liteSet", "1"); };
+  // détection automatique (une seule fois): si l'animation tourne à moins de ~38 images/s, on passe en mode léger (réversible dans l'engrenage)
+  if (!store.get("liteSet", "") && !lt.checked) addEventListener("load", () => setTimeout(() => {
+    if (document.hidden) return;
+    const dts = []; let last = 0;
+    requestAnimationFrame(function f(t) {
+      if (last) dts.push(t - last); last = t;
+      if (dts.length < 90) return document.hidden ? 0 : requestAnimationFrame(f);
+      store.set("liteSet", "1");
+      if (dts.sort((a, b) => a - b)[45] > 26) { document.documentElement.classList.add("lite"); lt.checked = true; store.set("lite", "1"); }
+    });
+  }, 2500), { once: true });
   const fb = $("#s-font"); // police lisible (appliquée aussi tout de suite dans le <head> pour éviter un flash)
   fb.checked = store.get("font", "0") === "1";
   fb.onchange = () => { document.documentElement.classList.toggle("legible", fb.checked); store.set("font", fb.checked ? "1" : "0"); dispatchEvent(new Event("resize")); };
@@ -414,7 +429,7 @@ moveLamp();
 addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; lampRaf ||= requestAnimationFrame(moveLamp); });
 
 (function lightning() { // random lightning
-  setTimeout(() => { if (lightningOn) { document.documentElement.classList.add("flash"); setTimeout(() => document.documentElement.classList.remove("flash"), 400); } lightning(); }, 8000 + Math.random() * 15000);
+  setTimeout(() => { if (lightningOn && !document.documentElement.classList.contains("lite")) { document.documentElement.classList.add("flash"); setTimeout(() => document.documentElement.classList.remove("flash"), 400); } lightning(); }, 8000 + Math.random() * 15000);
 })();
 
 // ---- page transition: a creeping shadow sweeps across the screen, then we navigate ----
