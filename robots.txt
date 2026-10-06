@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://shmunk1.github.io/saint.archive/sitemap.xml

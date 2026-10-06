@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Special+Elite&family=Cinzel:wght@700&display=swap");
 
 :root { --hv:.8s; --ease:cubic-bezier(.2,.7,.2,1); /* durée et courbe des effets de survol des cartes */ --display:"UnifrakturCook",serif; --text:"Special Elite",monospace; --bg:#050505; --ink:#cfcfc4; --dim:#7a7a70; --blood:#9b0f16; --bone:#e8e6d8; }
 * { box-sizing: border-box; margin: 0; }
@@ -17,10 +16,10 @@ body.xhair, body.xhair * { cursor: none !important; } /* !important: sinon #gear
   filter:brightness(0) invert(1); mix-blend-mode:difference; } /* blanc sur noir, noir sur blanc */
 
 /* fog + grain + flashlight (follows the mouse via --mx/--my) */
-body::before, body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:50; }
-body::before { /* flashlight: dark everywhere except around the cursor */
-  background: radial-gradient(circle 260px at var(--mx,50%) var(--my,40%), transparent 0, rgba(0,0,0,var(--dark,.65)) 100%);
-}
+body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:50; }
+/* lampe torche: sombre partout sauf autour du curseur. Un élément qu'on déplace par transform (pas de variable CSS: elle forçait un recalcul de style de toute la page à chaque mouvement) */
+#lamp { position:fixed; left:0; top:0; width:520px; height:520px; z-index:50; pointer-events:none; will-change:transform;
+  background:radial-gradient(circle 260px at 50% 50%, transparent 0, rgba(0,0,0,var(--dark,.65)) 100%); box-shadow:0 0 0 100vmax rgba(0,0,0,var(--dark,.65)); }
 body::after { /* grain */
   opacity:.12; mix-blend-mode:overlay; animation: grain .6s steps(4) infinite;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
@@ -362,3 +361,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display:none; width:0; height
 .nf { text-align:center; padding:1rem 0 4rem; }
 .nf .glitch { margin-top:3rem; }
 .nf-text { margin:0 auto 2.2rem; max-width:34rem; color:var(--dim); }
+
+/* recherche (discography) */
+.search { max-width:34rem; margin:0 auto 2rem; }
+.search input { width:100%; padding:.75rem 1rem; background:#0b0b0a; color:var(--bone); border:1px solid #2a2a26; border-bottom-color:var(--blood); border-radius:3px; font:1rem var(--text); letter-spacing:.04em; outline:0; transition:border-color .3s, box-shadow .3s; }
+.search input::placeholder { color:var(--dim); }
+.search input:focus { border-color:var(--blood); box-shadow:0 0 18px color-mix(in srgb, var(--blood) 40%, transparent); }
+.none { text-align:center; color:var(--dim); font-family:var(--display); font-size:1.4rem; margin:3rem 0; }
+[hidden] { display:none !important; }

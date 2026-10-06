@@ -40,7 +40,7 @@ document.documentElement.addEventListener("pointerleave", () => { ptr = null; li
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtDate = (dt) => { const [y, m, dd] = (dt || "").split("-"); return [dd && +dd, m && MONTHS[+m - 1], y].filter(Boolean).join(" "); };
 // carte "pierre" (discography + suggestions): pochette + titre + nb de tracks = lien vers la page du projet; boutons externes optionnels
-const card = (it, links = []) => `<article class="stone c"><a class="cardlink" href="release.html?r=${it.id}">${it.cover ? `<img src="${it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
+const card = (it, links = []) => `<article class="stone c"><a class="cardlink" href="release/${it.id}.html">${it.cover ? `<img src="${it.thumb || it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
   <h3>${it.title}</h3><small>${[it.tracks && `${it.tracks} track${it.tracks > 1 ? "s" : ""}`, fmtDate(it.date)].filter(Boolean).join(" · ") || "&nbsp;"}</small></a>
   ${links.length ? `<div class="btns">${links.map(([k, l]) => btn(it[k], l)).join("")}</div>` : ""}</article>`;
 const stagger = (el) => [...el.children].forEach((c, i) => c.style.setProperty("--i", Math.min(i, 14))); // apparition en cascade (voir .stone.c en CSS)
@@ -79,7 +79,7 @@ const pages = {
     const kindOf = (x) => (DATA.releases.includes(x) ? "rls" : DATA.features.includes(x) ? "feat" : "sc"); // "rls" et pas "rel": .rel est déjà la mise en page de la page projet
     $("#yard").innerHTML = [...new Set(years)].sort().map((y) => {
       const items = all.filter((x) => yearOf(x) === y).sort((p, q) => (p.date || "").localeCompare(q.date || "")), projects = items.filter(isProject).length;
-      return `<a class="stone tomb" href="year.html?y=${y}"><h3>${y}</h3><div class="mini">${items.map((x) => `<i class="g ${kindOf(x)}${isProject(x) ? " big" : ""}"></i>`).join("")}</div>
+      return `<a class="stone tomb" href="year/${y}.html"><h3>${y}</h3><div class="mini">${items.map((x) => `<i class="g ${kindOf(x)}${isProject(x) ? " big" : ""}"></i>`).join("")}</div>
         <small>${items.length} songs${projects ? ` \u00b7 ${projects} project${projects > 1 ? "s" : ""}` : ""}</small><span class="enter">Enter &#10013;</span></a>`;
     }).join("");
     stagger($("#yard"));
@@ -90,22 +90,29 @@ const pages = {
     const kinds = [["all", "All"], ["Album", "Albums"], ["EP", "EPs"], ["Single", "Singles"]];
     const byDate = (a, b) => (b.date || "").localeCompare(a.date || "");
     const kind = (r) => r.type || "Single";
-    const showReleases = (k) => {
-      const list = DATA.releases.filter((r) => k === "all" || kind(r) === k).sort(byDate);
-      $("#releases").innerHTML = list.map((r) => card(r, [["spotify", "Spotify"]])).join("") || "<p>Nothing here yet.</p>";
-      stagger($("#releases")); rails.get($("#releases"))?.(); // nouveau filtre: le carrousel repart du début
+    const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();   // "Nardo$ Reign" ~ "nardo reign"
+    const hay = new Map([...DATA.releases, ...DATA.soundcloud, ...DATA.features].map((x) => [x, norm([x.title, x.artist, ...(x.with || []), x.type, (x.date || "").slice(0, 4)].filter(Boolean).join(" "))]));
+    let k = "all", q = "";
+    const sections = [["#releases", DATA.releases, [["spotify", "Spotify"]], true], ["#soundcloud", DATA.soundcloud, [["soundcloud", "SoundCloud"]]], ["#features", DATA.features, [["spotify", "Spotify"]]]];
+    const render = () => {
+      let found = 0;
+      for (const [sel, list, links, filtered] of sections) {
+        const grid = $(sel), rows = list.filter((r) => (!filtered || k === "all" || kind(r) === k) && q.split(" ").every((w) => hay.get(r).includes(w))).sort(byDate);
+        grid.innerHTML = rows.map((r) => card(r, links)).join("") || (filtered && !q ? "<p>Nothing here yet.</p>" : "");
+        for (let el = grid.previousElementSibling; el && (el === $("#filters") || el.tagName === "H2"); el = el.previousElementSibling) { el.hidden = !rows.length && !!q; if (el.tagName === "H2") break; }
+        stagger(grid); rails.get(grid)?.(); found += rows.length;   // nouveau filtre: le carrousel repart du début
+      }
+      $("#none").hidden = !!found || !q;
       document.querySelectorAll("#filters button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.k === k));
     };
-    $("#filters").innerHTML = kinds.map(([k, l]) => `<button class="btn" data-k="${k}">${l}</button>`).join("");
-    $("#filters").onclick = (e) => { const b = e.target.closest("button"); if (b) showReleases(b.dataset.k); };
-    showReleases("all");
-    $("#soundcloud").innerHTML = DATA.soundcloud.slice().sort(byDate).map((r) => card(r, [["soundcloud", "SoundCloud"]])).join("");
-    $("#features").innerHTML = DATA.features.slice().sort(byDate).map((r) => card(r, [["spotify", "Spotify"]])).join("");
-    stagger($("#soundcloud")); stagger($("#features"));
+    $("#filters").innerHTML = kinds.map(([v, l]) => `<button class="btn" data-k="${v}">${l}</button>`).join("");
+    $("#filters").onclick = (e) => { const b = e.target.closest("button"); if (b) { k = b.dataset.k; render(); } };
+    $("#q").oninput = (e) => { q = norm(e.target.value); render(); };
+    render();
   },
   release() {
     // page d'un projet (album, EP, single, exclu SoundCloud, feature): release.html?r=<id>
-    const id = new URLSearchParams(location.search).get("r");
+    const id = window.PAGE_ID || new URLSearchParams(location.search).get("r");
     const groups = [["releases", "Released", "spotify", "Spotify"], ["soundcloud", "SoundCloud Exclusive", "soundcloud", "SoundCloud"], ["features", "Feature", "spotify", "Spotify"]];
     const g = groups.find(([k]) => DATA[k].some((x) => x.id === id));
     const root = $("#rel"), back = '<a class="rune rel-back" href="discographie.html" data-dir="r">&larr; Discography</a>';
@@ -188,7 +195,7 @@ const pages = {
   },
   year() {
     // page d'une année: year.html?y=2025 -> tous les sons de l'année, par catégorie
-    const y = +new URLSearchParams(location.search).get("y"), root = $("#yr");
+    const y = +(window.PAGE_ID || new URLSearchParams(location.search).get("y")), root = $("#yr");
     const all = [...DATA.releases, ...DATA.soundcloud, ...DATA.features], yearOf = (x) => +(x.date || "0").slice(0, 4);
     const allYears = [...new Set(all.map(yearOf).filter(Boolean))].sort(), isProject = (x) => x.type === "Album" || x.type === "EP";
     const back = '<a class="rune rel-back" href="index.html#graveyard" data-dir="r">&larr; Graveyard</a>';
@@ -200,7 +207,7 @@ const pages = {
     const n = all.filter((x) => yearOf(x) === y).length, projects = rel.filter(isProject).length;
     root.innerHTML = `${back}
       <header class="yr-head"><p class="rel-kind">The Graveyard</p><h1>${y}</h1><p class="sub">${n} songs${projects ? ` \u00b7 ${projects} project${projects > 1 ? "s" : ""}` : ""}</p></header>
-      <div class="filters yr-years">${allYears.map((v) => `<a class="btn" href="year.html?y=${v}" data-dir="${v > y ? "l" : "r"}" aria-pressed="${v === y}">${v}</a>`).join("")}</div>
+      <div class="filters yr-years">${allYears.map((v) => `<a class="btn" href="year/${v}.html" data-dir="${v > y ? "l" : "r"}" aria-pressed="${v === y}">${v}</a>`).join("")}</div>
       ${sections.map(([t, arr, links]) => `<section><h2>${t}</h2><div class="grid">${arr.map((x) => card(x, links)).join("")}</div></section>`).join("")}`;
     root.querySelectorAll(".grid").forEach(stagger);
   },
@@ -209,7 +216,7 @@ const pages = {
     const all = [...DATA.releases, ...DATA.soundcloud, ...DATA.features], pick = all[Math.floor(Math.random() * all.length)];
     $("#nf").innerHTML = `<div class="nf"><h1 class="glitch" data-t="404">404</h1><p class="sub">Lost in the graveyard</p><div class="rip" aria-hidden="true"><i></i><i></i><i></i></div>
       <p class="nf-text">This page doesn't exist, or it was buried a long time ago.</p>
-      <div class="btns"><a class="rune" href="index.html">Back home</a><a class="rune" href="release.html?r=${pick.id}">Dig up a random track</a><a class="rune" href="discographie.html">Discography</a></div></div>`;
+      <div class="btns"><a class="rune" href="index.html">Back home</a><a class="rune" href="release/${pick.id}.html">Dig up a random track</a><a class="rune" href="discographie.html">Discography</a></div></div>`;
   },
   clips() {
     // carte "écran": la miniature remplit toute la carte, titre en bas, bouton lecture au centre; toute la carte est un lien
@@ -400,8 +407,11 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
 })();
 
 // ---- atmosphere ----
-const root = document.documentElement.style;
-addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "px"); root.setProperty("--my", e.clientY + "px"); });
+const lamp = document.createElement("div"); lamp.id = "lamp"; lamp.setAttribute("aria-hidden", "true"); document.body.prepend(lamp);
+let lampX = innerWidth / 2, lampY = innerHeight * .4, lampRaf = 0;
+const moveLamp = () => { lampRaf = 0; lamp.style.transform = `translate3d(${lampX - 260}px,${lampY - 260}px,0)`; };
+moveLamp();
+addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; lampRaf ||= requestAnimationFrame(moveLamp); });
 
 (function lightning() { // random lightning
   setTimeout(() => { if (lightningOn) { document.documentElement.classList.add("flash"); setTimeout(() => document.documentElement.classList.remove("flash"), 400); } lightning(); }, 8000 + Math.random() * 15000);
@@ -416,7 +426,7 @@ addEventListener("pointermove", (e) => { root.setProperty("--mx", e.clientX + "p
   document.body.append(c);
   const ctx = c.getContext("2d");
   const MS = 600, order = ["index.html", "discographie.html", "clips.html"];
-  const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return f === "release.html" ? 1.5 : f === "year.html" ? .5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
+  const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return /\/release\/|^release\.html$/.test(path) || f === "release.html" ? 1.5 : /\/year\//.test(path) || f === "year.html" ? .5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
   let seed, strips = [], marks = [], sweep = 1, dist = 0, busy = false;
   const crossImg = new Image(); crossImg.src = "img/cross.png";
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
