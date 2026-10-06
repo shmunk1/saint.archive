@@ -348,7 +348,7 @@ let lightningOn = true; // réglé par l'engrenage, lu par l'orage plus bas
 (function settings() {
   const store = { get: (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
   const g = document.createElement("button");
-  g.id = "gear"; g.setAttribute("aria-label", "Settings"); g.setAttribute("aria-expanded", "false"); g.innerHTML = "<span>⚙︎</span>";
+  g.id = "gear"; g.setAttribute("aria-label", "Settings"); g.setAttribute("aria-expanded", "false"); g.innerHTML = '<span><svg viewBox="-14 -14 28 28" width="27" height="27" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M-1.77 -9.13 L-1.47 -12.92 L1.47 -12.92 L1.77 -9.13 L2.87 -8.84 L3.93 -8.43 L6.40 -11.31 L8.78 -9.58 L6.80 -6.34 L7.52 -5.47 L8.13 -4.51 L11.83 -5.39 L12.74 -2.59 L9.23 -1.13 L9.30 -0.00 L9.23 1.13 L12.74 2.59 L11.83 5.39 L8.13 4.51 L7.52 5.47 L6.80 6.34 L8.78 9.58 L6.40 11.31 L3.93 8.43 L2.87 8.84 L1.77 9.13 L1.47 12.92 L-1.47 12.92 L-1.77 9.13 L-2.87 8.84 L-3.93 8.43 L-6.40 11.31 L-8.78 9.58 L-6.80 6.34 L-7.52 5.47 L-8.13 4.51 L-11.83 5.39 L-12.74 2.59 L-9.23 1.13 L-9.30 0.00 L-9.23 -1.13 L-12.74 -2.59 L-11.83 -5.39 L-8.13 -4.51 L-7.52 -5.47 L-6.80 -6.34 L-8.78 -9.58 L-6.40 -11.31 L-3.93 -8.43 L-2.87 -8.84ZM-1.3 -6 L1.3 -6 L1.3 -3.2 L3.7 -3.2 L3.7 -0.8 L1.3 -0.8 L1.3 6 L-1.3 6 L-1.3 -0.8 L-3.7 -0.8 L-3.7 -3.2 L-1.3 -3.2Z"/></svg></span>';
   const p = document.createElement("div");
   p.id = "panel"; p.hidden = true;
   p.innerHTML = `<h3>Settings</h3>
