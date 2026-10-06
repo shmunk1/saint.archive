@@ -17,13 +17,14 @@
 <title>THEY CANT — 1300SAINT</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <meta name="theme-color" content="#050505">
-<script>try{sessionStorage.t&&document.documentElement.classList.add("tr");localStorage.font==="1"&&document.documentElement.classList.add("legible");localStorage.plain==="1"&&document.documentElement.classList.add("plain");const k=JSON.parse(localStorage.colors||"{}");for(const n in k)document.documentElement.style.setProperty("--"+n,k[n])}catch(e){}</script>
+<script>try{sessionStorage.t||sessionStorage.pre||matchMedia("(prefers-reduced-motion:reduce)").matches||document.documentElement.classList.add("pre");sessionStorage.t&&document.documentElement.classList.add("tr");localStorage.font==="1"&&document.documentElement.classList.add("legible");localStorage.plain==="1"&&document.documentElement.classList.add("plain");const k=JSON.parse(localStorage.colors||"{}");for(const n in k)document.documentElement.style.setProperty("--"+n,k[n])}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=Special+Elite&family=Cinzel:wght@700&display=swap">
 <link rel="stylesheet" href="style.css">
 <script>window.PAGE_ID="they-cant"</script>
 </head>
 <body data-page="release">
+<div id="pre" aria-hidden="true"><div class="pre-x"><img class="pre-c" src="img/cross.png" alt=""><img class="pre-f" src="img/cross.png" alt=""></div></div>
 <div class="fog"></div>
 <header class="top">
   <a class="brand" href="index.html"><img src="img/cross.png" alt=""><span>1300SAINT</span></a>

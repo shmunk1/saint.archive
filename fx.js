@@ -559,3 +559,14 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   update(); setTimeout(update, 600);
 })();
 
+
+// ---- preloader: la croix se remplit (CSS); on l'enlève quand la page est chargée, après au moins 1,6 s, une seule fois par visite ----
+(function preloader() {
+  const h = document.documentElement;
+  if (!h.classList.contains("pre")) return;
+  try { sessionStorage.pre = "1"; } catch {}
+  const t0 = performance.now(), done = () => { h.classList.add("pre-out"); setTimeout(() => h.classList.remove("pre", "pre-out"), 800); };
+  const go = () => setTimeout(done, Math.max(0, 1600 - (performance.now() - t0)));
+  document.readyState === "complete" ? go() : addEventListener("load", go, { once: true });
+  setTimeout(done, 5000); // filet: image ou iframe qui traîne
+})();

@@ -369,3 +369,16 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display:none; width:0; height
 .search input:focus { border-color:var(--blood); box-shadow:0 0 18px color-mix(in srgb, var(--blood) 40%, transparent); }
 .none { text-align:center; color:var(--dim); font-family:var(--display); font-size:1.4rem; margin:3rem 0; }
 [hidden] { display:none !important; }
+
+/* preloader: la croix se remplit de bas en haut, une seule fois par visite (voir fx.js). Filet CSS: s'efface seul au bout de 6 s si le script ne le fait pas */
+#pre { display:none; }
+html.pre #pre { position:fixed; inset:0; z-index:400; display:grid; place-items:center; background:#050505; animation:pre-fallback 0s 6s forwards; transition:opacity .7s, visibility .7s; }
+html.pre.pre-out #pre { opacity:0; visibility:hidden; }
+.pre-x { position:relative; width:clamp(70px, 14vmin, 130px); aspect-ratio:137 / 240; filter:drop-shadow(0 0 14px var(--blood)); animation:pre-glow 1.1s ease-in-out infinite alternate; } /* la lueur est sur le parent: appliquée sur l'image rognée par clip-path, elle était coupée net à la limite du remplissage */
+.pre-x img { position:absolute; inset:0; width:100%; height:100%; }
+.pre-c { opacity:.16; }
+.pre-f { clip-path:inset(100% 0 0 0); animation:pre-fill 1.5s cubic-bezier(.5, 0, .3, 1) forwards; }
+html.pre.pre-out .pre-x { transform:scale(1.15); transition:transform .7s; }
+@keyframes pre-fill { to { clip-path:inset(0 0 0 0); } }
+@keyframes pre-glow { to { filter:drop-shadow(0 0 28px var(--blood)); } }
+@keyframes pre-fallback { to { opacity:0; visibility:hidden; } }
