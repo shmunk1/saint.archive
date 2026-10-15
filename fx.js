@@ -299,6 +299,7 @@ function carousel(grid) {
     if (moved > 6) { pos = target = down.p - dx / SPACING; layout(); }
   });
   addEventListener("pointerup", () => { if (down && moved > 6) go(pos - down.v / 8); down = null; });
+  addEventListener("pointercancel", () => { if (down && moved > 6) go(Math.round(pos)); down = null; });
   grid.addEventListener("dragstart", (e) => e.preventDefault());
   grid.addEventListener("wheel", (e) => { // trackpad / Maj+molette; la molette verticale fait défiler la page normalement
     if (flat || Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
@@ -550,7 +551,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
     try { sessionStorage.t = dir; } catch {}
     warm(a.href); // la page suivante se télécharge pendant que l'ombre avance: le temps noir entre les deux pages raccourcit
     build(dir);
-    run((u) => render(u, 0), MS, () => (location.href = a.href));
+    run((u) => render(u, 0), MS, () => { location.href = a.href; setTimeout(() => { busy = false; c.style.display = "none"; }, 4000); }); // filet: navigation échouée (réseau...), on rend la main
   });
   addEventListener("pageshow", (e) => { if (e.persisted) { busy = false; c.style.display = "none"; document.documentElement.classList.remove("vt"); } });
 })();
