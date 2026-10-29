@@ -177,7 +177,7 @@ const pages = {
         <div class="player${embed ? " live" : ""}" id="player">${embed?.uri
           ? `<div id="spembed"></div>`
           : embed
-          ? `<iframe src="${embed.src}" height="${embed.h}" title="${it.title} — ${embed.from} player" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`
+          ? `<iframe src="${embed.src}" height="${embed.h}" title="${it.title} — ${embed.from} player" allow="autoplay; encrypted-media" sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox" loading="lazy"></iframe>`
           : `<small>No preview yet for this one.</small>`}</div>
       </section>
       ${songs.length && (playable || it.type !== "Single") ? `<section><h2>Tracklist</h2><ol class="tracks">${songs.map((x, n) => `<li>${playable
