@@ -532,3 +532,7 @@ footer > p { color:#444; }
 .tl-c.lift { opacity:.25; }
 .tl-zone.over { background:color-mix(in srgb, var(--blood) 14%, transparent); }
 html.tl-dragging, html.tl-dragging * { user-select:none; -webkit-user-select:none; }
+/* protection: aucune sélection de texte, pas de menu "enregistrer l'image" au doigt, pas de glisser d'image; les champs de saisie restent utilisables */
+html, body, body * { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+img { -webkit-user-drag:none; user-drag:none; }
+input, textarea, [contenteditable] { -webkit-user-select:text; user-select:text; -webkit-touch-callout:default; }

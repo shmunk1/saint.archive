@@ -1,4 +1,9 @@
 const $ = (s) => document.querySelector(s);
+// ---- protection: pas de clic droit, pas de sélection / copie de texte, pas de glisser d'image (sauf dans les champs de saisie: recherche...) ----
+// le CSS (user-select:none, -webkit-touch-callout:none) fait le gros du travail; ceci couvre ce qu'il ne bloque pas
+const editable = (t) => !!t?.closest?.("input,textarea,[contenteditable]");
+for (const ev of ["contextmenu", "selectstart", "dragstart", "copy", "cut"])
+  document.addEventListener(ev, (e) => { if (!editable(e.target)) e.preventDefault(); }, { capture: true });
 const touch = matchMedia("(pointer:coarse)").matches; // téléphone / tablette: pas de souris, donc pas de survol ni de lampe torche, et des effets allégés (voir style.css)
 const a = DATA.artist;
 const btn = (href, label) => `<a class="rune" href="${href}" target="_blank" rel="noopener">${label}</a>`;
