@@ -135,7 +135,7 @@ for y in years:
     h = h.replace("</head>", f'<script>window.PAGE_ID={y}</script>\n</head>', 1)
     open(f"year/{y}.html", "w", encoding="utf-8").write(h)
 
-urls = [SITE, SITE + "discographie.html", SITE + "clips.html"] + [f"{SITE}year/{y}.html" for y in years] + [f"{SITE}release/{x['id']}.html" for x in data]
+urls = [SITE, SITE + "discographie.html", SITE + "clips.html", SITE + "tierlist.html"] + [f"{SITE}year/{y}.html" for y in years] + [f"{SITE}release/{x['id']}.html" for x in data]
 open("sitemap.xml", "w", encoding="utf-8").write('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(f"<url><loc>{u}</loc></url>" for u in urls) + "\n</urlset>\n")
 open("robots.txt", "w").write(f"User-agent: *\nAllow: /\nSitemap: {SITE}sitemap.xml\n")
 print(len(data), "sons,", len(years), "années,", len(urls), "urls dans le sitemap")

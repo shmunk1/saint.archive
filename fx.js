@@ -42,9 +42,29 @@ document.documentElement.addEventListener("pointerleave", () => { ptr = null; li
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const fmtDate = (dt) => { const [y, m, dd] = (dt || "").split("-"); return [dd && +dd, m && MONTHS[+m - 1], y].filter(Boolean).join(" "); };
 // carte "pierre" (discography + suggestions): pochette + titre + nb de tracks = lien vers la page du projet; boutons externes optionnels
-const card = (it, links = []) => `<article class="stone c"><a class="cardlink" href="release/${it.id}.html">${it.cover ? `<img src="${it.thumb || it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
-  <h3>${it.title}</h3><small>${[it.tracks && `${it.tracks} track${it.tracks > 1 ? "s" : ""}`, fmtDate(it.date)].filter(Boolean).join(" · ") || "&nbsp;"}</small></a>
+// note: petite ligne en plus sous les infos (type de son, morceau trouvé par la recherche, "il y a 3 ans"...)
+const card = (it, links = [], note = "") => `<article class="stone c"><a class="cardlink" href="release/${it.id}.html">${it.cover ? `<img src="${it.thumb || it.cover}" alt="${it.title} cover" width="300" height="300" loading="lazy" decoding="async">` : '<div class="ph sq">&#10013;</div>'}
+  <h3>${it.title}</h3><small>${[it.tracks && `${it.tracks} track${it.tracks > 1 ? "s" : ""}`, fmtDate(it.date)].filter(Boolean).join(" · ") || "&nbsp;"}</small>${note ? `<small class="note">${note}</small>` : ""}</a>
   ${links.length ? `<div class="btns">${links.map(([k, l]) => btn(it[k], l)).join("")}</div>` : ""}</article>`;
+const ALL = [...DATA.releases, ...DATA.soundcloud, ...DATA.features];
+const byId = (id) => ALL.find((x) => x.id === id);
+const kindLabel = (x) => (DATA.releases.includes(x) ? x.type || "Single" : DATA.features.includes(x) ? "Feature" : "SoundCloud");
+const songTitles = (x) => (x.songs || []).map((s) => (typeof s === "string" ? s : Array.isArray(s) ? s[0] : s.title));
+// carte d'un clip (page clips, page d'un son): miniature = lien YouTube; en dessous la date et le son / projet lié (lien vers sa page)
+const clipCard = (c, showRel = true) => {
+  const r = showRel && c.rel && byId(c.rel);
+  return `<article class="stone clip"><a href="${c.url}" target="_blank" rel="noopener" title="${c.title}">
+    ${c.thumb ? `<img src="${c.thumb}" alt="${c.title}" loading="lazy" decoding="async" width="480" height="360">` : '<div class="ph">&#9654;</div>'}
+    <span class="play"></span><span class="cap">${c.title}</span></a>
+    <p class="clip-meta"><span>${fmtDate(c.date)}</span>${r ? `<a href="release/${r.id}.html">${r.title}</a>` : ""}</p></article>`;
+};
+// clip dans une rangée de cartes "pierre" (dernières sorties): même gabarit carré que card()
+const clipTile = (c) => `<article class="stone c"><a class="cardlink" href="${c.url}" target="_blank" rel="noopener"><img class="yt" src="${c.thumb}" alt="${c.title}" width="300" height="300" loading="lazy" decoding="async">
+  <h3>${c.title}</h3><small>${fmtDate(c.date)}</small><small class="note">Clip</small></a></article>`;
+// fil d'Ariane: crumbs(["home", "index.html"], ["discography", "discographie.html"], ["ALL HAIL"]); le dernier = page actuelle
+const crumbs = (...parts) => `<div class="crumbs" role="navigation" aria-label="Breadcrumb">${parts.map(([l, h], i) =>
+  i === parts.length - 1 ? `<span aria-current="page">${l}</span>` : `<a href="${h}" data-dir="r">${l}</a>`).join('<i aria-hidden="true">/</i>')}</div>`;
+const list = (arr) => (arr.length > 1 ? arr.slice(0, -1).join(", ") + " and " + arr.at(-1) : arr[0] || ""); // ["A","B","C"] -> "A, B and C"
 const stagger = (el) => [...el.children].forEach((c, i) => c.style.setProperty("--i", Math.min(i, 14))); // apparition en cascade (voir .stone.c en CSS)
 const rails = new Map(); // .grid -> refresh() du carrousel (voir plus bas)
 const stone = (inner) => `<article class="stone">${inner}</article>`;
@@ -52,6 +72,18 @@ const stone = (inner) => `<article class="stone">${inner}</article>`;
 // ---- header: liens vers les plateformes (à droite) ----
 $(".ext").innerHTML = [["Spotify", a.links.spotify], ["SoundCloud", a.links.soundcloud], ["YouTube", a.links.youtube], ["Instagram", a.links.instagram]]
   .map(([l, u]) => `<a href="${u}" target="_blank" rel="noopener">${l}</a>`).join("");
+
+// ---- pied de page: navigation, plateformes, réseaux, soutien (même contenu sur toutes les pages) ----
+(function footer() {
+  const f = $("footer"); if (!f) return;
+  const L = a.links, x = (u, l) => (u ? `<a href="${u}" target="_blank" rel="noopener">${l}</a>` : "");
+  f.innerHTML = `<div class="foot">
+    <div><h4>Explore</h4><a href="index.html">Home</a><a href="discographie.html">Discography</a><a href="clips.html">Clips</a><a href="tierlist.html">Tier list</a></div>
+    <div><h4>Listen</h4>${x(L.spotify, "Spotify")}${x(L.apple, "Apple Music")}${x(L.deezer, "Deezer")}${x(L.soundcloud, "SoundCloud")}${x(L.youtube, "YouTube")}</div>
+    <div><h4>Follow</h4>${x(L.instagram, "Instagram")}${x(L.youtube, "YouTube")}</div>
+    ${DATA.site?.kofi ? `<div><h4>Support</h4>${x(DATA.site.kofi, "Ko-fi")}</div>` : ""}
+  </div><p>Unofficial fan site &middot; not affiliated with the artist or his label</p>`;
+})();
 
 // ---- menu burger (téléphone): bouton en haut à gauche qui ouvre la navigation + les plateformes; en CSS, la barre de navigation est cachée sous 560 px ----
 (function burger() {
@@ -103,29 +135,70 @@ const pages = {
         <small>${items.length} songs${projects ? ` \u00b7 ${projects} project${projects > 1 ? "s" : ""}` : ""}</small><span class="enter">Enter &#10013;</span></a>`;
     }).join("");
     stagger($("#yard"));
+
+    // dernières sorties: sons et clips mélangés, du plus récent au plus ancien (un clip sorti le même jour que son son n'est pas répété)
+    const feed = [...all.filter((x) => x.date).map((x) => [x.date, () => card(x, [], kindLabel(x))]),
+      ...DATA.clips.filter((c) => c.date && byId(c.rel)?.date !== c.date).map((c) => [c.date, () => clipTile(c)])].sort((p, q) => q[0].localeCompare(p[0])).slice(0, 4);
+    $("#latest").innerHTML = feed.map(([, html]) => html()).join("");
+    stagger($("#latest"));
+
+    // ce jour-là: les sons sortis un même jour / mois les années passées; sinon les prochains anniversaires
+    const now = new Date(), t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const pad = (n) => String(n).padStart(2, "0"), today = `${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const dated = all.filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x.date || ""));
+    const ago = (x) => { const n = now.getFullYear() - +x.date.slice(0, 4); return n > 0 ? `${n} year${n > 1 ? "s" : ""} ago today` : "Today"; };
+    const daysTo = (x) => { // jours avant le prochain anniversaire (0 = aujourd'hui)
+      const [, m, d] = x.date.split("-").map(Number), t = new Date(now.getFullYear(), m - 1, d);
+      if (t < t0) t.setFullYear(t.getFullYear() + 1);
+      return Math.round((t - t0) / 864e5);
+    };
+    const hits = dated.filter((x) => x.date.slice(5) === today).sort((p, q) => p.date.localeCompare(q.date)), day = `${now.getDate()} ${MONTHS[now.getMonth()]}`;
+    if (hits.length) {
+      $("#otd-sub").textContent = `Dug up on ${day}`;
+      $("#otd").innerHTML = hits.map((x) => card(x, [], ago(x))).join("");
+    } else {
+      const next = dated.map((x) => [daysTo(x), x]).sort((p, q) => p[0] - q[0]).slice(0, 4);
+      $("#otd-sub").textContent = `Nothing was buried on a ${day}. Coming up:`;
+      const turns = (n, x) => new Date(t0.getFullYear(), t0.getMonth(), t0.getDate() + n).getFullYear() - +x.date.slice(0, 4); // âge du son à cet anniversaire
+      $("#otd").innerHTML = next.map(([n, x]) => card(x, [], `${n === 1 ? "Tomorrow" : `In ${n} days`} &middot; ${turns(n, x)} year${turns(n, x) > 1 ? "s" : ""}`)).join("");
+    }
+    stagger($("#otd"));
   },
   disco() {
     // pochette en haut de la pierre, puis titre, infos et boutons (SoundCloud seul pour les sons SoundCloud)
     // tri des "Released": All (récent -> ancien, sans date en dernier) / Albums / EPs / Singles
-    const kinds = [["all", "All"], ["Album", "Albums"], ["EP", "EPs"], ["Single", "Singles"]];
+    $("main").insertAdjacentHTML("afterbegin", crumbs(["home", "index.html"], ["discography"]));
+    // onglets: les 3 premiers trient les "Released", SoundCloud / Features n'affichent que leur section. Le nombre suit la recherche.
+    const kinds = [["all", "All"], ["Album", "Albums"], ["EP", "EPs"], ["Single", "Singles"], ["sc", "SoundCloud"], ["feat", "Features"]];
     const byDate = (a, b) => (b.date || "").localeCompare(a.date || "");
     const kind = (r) => r.type || "Single";
     const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, " ").trim();   // "Nardo$ Reign" ~ "nardo reign"
-    const hay = new Map([...DATA.releases, ...DATA.soundcloud, ...DATA.features].map((x) => [x, norm([x.title, x.artist, ...(x.with || []), x.type, (x.date || "").slice(0, 4)].filter(Boolean).join(" "))]));
+    const words = (x) => [x.title, x.artist, ...(x.with || []), x.type, (x.date || "").slice(0, 4)].filter(Boolean).join(" ");
+    const own = new Map(ALL.map((x) => [x, norm(words(x))]));                                  // le son lui-même
+    const hay = new Map(ALL.map((x) => [x, norm(words(x) + " " + songTitles(x).join(" "))])); // + les titres de sa tracklist
     let k = "all", q = "";
-    const sections = [["#releases", DATA.releases, [["spotify", "Spotify"]], true], ["#soundcloud", DATA.soundcloud, [["soundcloud", "SoundCloud"]]], ["#features", DATA.features, [["spotify", "Spotify"]]]];
+    const has = (h) => q.split(" ").every((w) => h.includes(w));
+    const hit = (r) => { // trouvé grâce à un morceau de la tracklist: on l'indique sur la carte ("♫ KYOTO")
+      if (!q || has(own.get(r))) return "";
+      const t = songTitles(r).filter((s) => has(norm(s)));
+      return t.length ? "&#9835; " + t.slice(0, 2).join(", ") + (t.length > 2 ? "&hellip;" : "") : "";
+    };
+    const sections = [["releases", [["spotify", "Spotify"]], (t) => ["all", "Album", "EP", "Single"].includes(t), (r, t) => t === "all" || kind(r) === t],
+      ["soundcloud", [["soundcloud", "SoundCloud"]], (t) => t === "all" || t === "sc", () => true],
+      ["features", [["spotify", "Spotify"]], (t) => t === "all" || t === "feat", () => true]];
+    const rowsFor = (t) => sections.flatMap(([name, , shows, keep]) => (shows(t) ? DATA[name].filter((r) => keep(r, t) && has(hay.get(r))) : []));
     const render = () => {
       let found = 0;
-      for (const [sel, list, links, filtered] of sections) {
-        const grid = $(sel), rows = list.filter((r) => (!filtered || k === "all" || kind(r) === k) && q.split(" ").every((w) => hay.get(r).includes(w))).sort(byDate);
-        grid.innerHTML = rows.map((r) => card(r, links)).join("") || (filtered && !q ? "<p>Nothing here yet.</p>" : "");
-        for (let el = grid.previousElementSibling; el && (el === $("#filters") || el.tagName === "H2"); el = el.previousElementSibling) { el.hidden = !rows.length && !!q; if (el.tagName === "H2") break; }
+      for (const [name, links, shows, keep] of sections) {
+        const grid = $("#" + name), rows = shows(k) ? DATA[name].filter((r) => keep(r, k) && has(hay.get(r))).sort(byDate) : [];
+        grid.closest("section").hidden = !shows(k) || (!rows.length && !!q); // avant le refresh du carrousel: il mesure les cartes
+        grid.innerHTML = rows.map((r) => card(r, links, hit(r))).join("") || (!q ? "<p>Nothing here yet.</p>" : "");
         stagger(grid); rails.get(grid)?.(); found += rows.length;   // nouveau filtre: le carrousel repart du début
       }
       $("#none").hidden = !!found || !q;
-      document.querySelectorAll("#filters button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.k === k));
+      document.querySelectorAll("#filters button").forEach((b) => { b.setAttribute("aria-pressed", b.dataset.k === k); b.querySelector(".cnt").textContent = String(rowsFor(b.dataset.k).length).padStart(2, "0"); });
     };
-    $("#filters").innerHTML = kinds.map(([v, l]) => `<button class="btn" data-k="${v}">${l}</button>`).join("");
+    $("#filters").innerHTML = kinds.map(([v, l]) => `<button class="btn" data-k="${v}">${l} <span class="cnt"></span></button>`).join("");
     $("#filters").onclick = (e) => { const b = e.target.closest("button"); if (b) { k = b.dataset.k; render(); } };
     $("#q").oninput = (e) => { q = norm(e.target.value); render(); };
     render();
@@ -135,9 +208,10 @@ const pages = {
     const id = window.PAGE_ID || new URLSearchParams(location.search).get("r");
     const groups = [["releases", "Released", "spotify", "Spotify"], ["soundcloud", "SoundCloud Exclusive", "soundcloud", "SoundCloud"], ["features", "Feature", "spotify", "Spotify"]];
     const g = groups.find(([k]) => DATA[k].some((x) => x.id === id));
-    const root = $("#rel"), back = '<a class="rune rel-back" href="discographie.html" data-dir="r">&larr; Discography</a>';
-    if (!g) { root.innerHTML = back + "<p>This release does not exist.</p>"; return; }
+    const root = $("#rel");
+    if (!g) { root.innerHTML = crumbs(["home", "index.html"], ["discography", "discographie.html"], ["not found"]) + "<p>This release does not exist.</p>"; return; }
     const [key, label, pk, pname] = g, it = DATA[key].find((x) => x.id === id);
+    const nav = crumbs(["home", "index.html"], ["discography", "discographie.html"], [{ releases: "released", soundcloud: "soundcloud", features: "features" }[key], "discographie.html"], [it.title]);
     document.title = `${it.title} \u2014 1300SAINT`;
     const fmt = fmtDate;
     const tr = it.tracks ? `${it.tracks} track${it.tracks > 1 ? "s" : ""}` : "";
@@ -163,16 +237,48 @@ const pages = {
     const songs = (it.songs || []).map((x) => (typeof x === "string" ? { title: x } : Array.isArray(x) ? { title: x[0], length: x[1], id: x[2] } : x)); // "titre" | ["titre", "2:41", "idSpotify"] | {title, length, url}
     const playable = embed?.from === "Spotify" && songs.length >= 3 && songs.every((x) => x.id); // albums / EP: chaque ligne lance son morceau
     if (playable) embed.h = 152; // lecteur compact: la liste, c'est la tracklist de la page
-    root.innerHTML = `${back}
+
+    // où l'écouter: la plateforme principale (lien direct, ou recherche s'il manque), puis les autres liens directs connus
+    const direct = (u) => !!u && !/\/search[/?]/.test(u);
+    const clips = DATA.clips.filter((c) => c.rel === it.id).sort((p, q) => (q.date || "").localeCompare(p.date || ""));
+    const yt = it.youtube || clips[0]?.url;
+    const listen = [[it[pk], (direct(it[pk]) ? "Open on " : "Search on ") + pname],
+      ...[["spotify", "Spotify"], ["apple", "Apple Music"], ["deezer", "Deezer"], ["soundcloud", "SoundCloud"]].filter(([k]) => k !== pk && direct(it[k])).map(([k, l]) => [it[k], l]),
+      ...(yt ? [[yt, "YouTube"]] : [])];
+
+    // "About": un résumé écrit à partir des données (type, rang, date, invités, clips), précédé du texte libre `about` s'il existe
+    const ORD = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
+    const when = !it.date ? "" : it.date.length > 7 ? ` on ${fmt(it.date)}` : ` in ${fmt(it.date)}`;
+    const leads = (it.artist || "").split(",").map((s) => s.trim()).filter(Boolean);
+    const guests = [...new Set([...(it.with || []), ...songs.flatMap((s) => (/\((?:feat|ft)\.?\s*([^)]+)\)/i.exec(s.title)?.[1] || "").split(/,|&| and /i).map((n) => n.trim()).filter(Boolean))])];
+    let sum;
+    if (key === "releases" && (it.type === "Album" || it.type === "EP")) {
+      const n = DATA.releases.filter((x) => x.type === it.type && x.date).sort((p, q) => p.date.localeCompare(q.date)).indexOf(it);
+      sum = `${it.title} is 1300SAINT's ${ORD[n] ? ORD[n] + " " : ""}${it.type === "EP" ? "EP" : "album"}, released${when}${it.tracks ? `: ${it.tracks} tracks${it.length ? `, ${it.length}` : ""}` : ""}.`;
+    } else if (key === "releases") sum = `${it.title} is a 1300SAINT single, released${when}${songs.length > 1 ? `, with ${songs.length} songs: ${list(songs.map((s) => s.title))}` : ""}.`;
+    else if (key === "features") sum = `1300SAINT features on ${it.title} by ${list(leads)}${it.with?.length ? `, alongside ${list(it.with)}` : ""}, released${when}.`;
+    else sum = `${it.title} is a SoundCloud exclusive${it.type === "EP" ? " EP" : ""}${leads.length ? ` by ${list(leads)}, featuring 1300SAINT` : ""}, posted${when}${it.with?.length ? `, with ${list(it.with)}` : ""}.`;
+    if (guests.length && key !== "features" && !(key === "soundcloud" && it.with?.length && guests.length === it.with.length)) sum += ` Guest appearances: ${list(guests)}.`;
+    if (clips.length) sum += ` Music video${clips.length > 1 ? "s" : ""}: ${list(clips.map((c) => c.title))}.`;
+    const yr = (it.date || "").slice(0, 4);
+    if (yr) sum += ` More from <a href="year/${yr}.html">${yr}</a> in the graveyard.`;
+
+    // précédent / suivant: dans la même section (Released, SoundCloud, Features), par date
+    const seq = DATA[key].filter((x) => x.date).sort((p, q) => p.date.localeCompare(q.date)), at = seq.indexOf(it);
+    const [prev, next] = at < 0 ? [] : [seq[at - 1], seq[at + 1]];
+    const pn = (x, cls, lab, dir) => (x ? `<a class="pn-a ${cls}" href="release/${x.id}.html" data-dir="${dir}"><small>${lab}</small><b>${x.title}</b></a>` : "<span></span>");
+
+    root.innerHTML = `${nav}
       <div class="rel">
         ${it.cover ? `<button class="cover-btn" data-tilt aria-label="Enlarge the cover"><img class="rel-cover" src="${it.cover}" alt="${it.title} cover" width="640" height="640"></button>` : ""}
         <div>
           <p class="rel-kind">${key === "releases" ? it.type || "Single" : label}</p>
           <h1>${it.title}</h1>
           <dl class="rel-meta">${meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>
-          <div class="btns" style="justify-content:flex-start">${btn(it[pk], "Open on " + pname)}</div>
+          <div class="btns" style="justify-content:flex-start">${listen.map(([u, l]) => btn(u, l)).join("")}</div>
         </div>
       </div>
+      <section class="about"><h2>About</h2>${it.about ? `<p>${it.about}</p>` : ""}<p>${sum}</p></section>
       <section><h2>Preview</h2>
         <div class="player${embed ? " live" : ""}" id="player">${embed?.uri
           ? `<div id="spembed"></div>`
@@ -183,6 +289,8 @@ const pages = {
       ${songs.length && (playable || it.type !== "Single") ? `<section><h2>Tracklist</h2><ol class="tracks">${songs.map((x, n) => `<li>${playable
         ? `<button class="trk" data-id="${x.id}"><span class="n">${String(n + 1).padStart(2, "0")}</span><span class="t">${x.title}</span><span class="len">${x.length || ""}</span></button>`
         : `<span class="n">${String(n + 1).padStart(2, "0")}</span><span class="t">${x.url ? `<a href="${x.url}" target="_blank" rel="noopener">${x.title}</a>` : x.title}</span>${x.length ? `<span class="len">${x.length}</span>` : ""}`}</li>`).join("")}</ol></section>` : ""}
+      ${clips.length ? `<section><h2>Clip${clips.length > 1 ? "s" : ""}</h2><div class="grid flat clipgrid">${clips.map((c) => clipCard(c, false)).join("")}</div></section>` : ""}
+      <div class="pn">${pn(prev, "pn-prev", "&larr; Older", "r")}${pn(next, "pn-next", "Newer &rarr;", "l")}</div>
       <section><h2>You might also like</h2><div class="grid" id="suggest">${picks.map((x) => card(x)).join("")}</div></section>`;
     stagger($("#suggest"));
     if (embed?.uri) { // lecteur Spotify piloté par l'API officielle (https://developer.spotify.com/documentation/embeds)
@@ -218,7 +326,7 @@ const pages = {
     const y = +(window.PAGE_ID || new URLSearchParams(location.search).get("y")), root = $("#yr");
     const all = [...DATA.releases, ...DATA.soundcloud, ...DATA.features], yearOf = (x) => +(x.date || "0").slice(0, 4);
     const allYears = [...new Set(all.map(yearOf).filter(Boolean))].sort(), isProject = (x) => x.type === "Album" || x.type === "EP";
-    const back = '<a class="rune rel-back" href="index.html#graveyard" data-dir="r">&larr; Graveyard</a>';
+    const back = crumbs(["home", "index.html"], ["graveyard", "index.html#graveyard"], [String(y || "?")]);
     if (!allYears.includes(y)) { root.innerHTML = back + "<p>No songs for this year.</p>"; return; }
     document.title = `${y} \u2014 1300SAINT`;
     const mine = (arr) => arr.filter((x) => yearOf(x) === y).sort((p, q) => (q.date || "").localeCompare(p.date || ""));
@@ -239,10 +347,110 @@ const pages = {
       <div class="btns"><a class="rune" href="index.html">Back home</a><a class="rune" href="release/${pick.id}.html">Dig up a random track</a><a class="rune" href="discographie.html">Discography</a></div></div>`;
   },
   clips() {
-    // carte "écran": la miniature remplit toute la carte, titre en bas, bouton lecture au centre; toute la carte est un lien
-    $("#clips").innerHTML = DATA.clips.map((c) => `<article class="stone clip"><a href="${c.url}" target="_blank" rel="noopener" title="${c.title}">
-      ${c.thumb ? `<img src="${c.thumb}" alt="${c.title}" loading="lazy" decoding="async" width="480" height="360">` : '<div class="ph">&#9654;</div>'}
-      <span class="play"></span><span class="cap">${c.title}</span></a></article>`).join("");
+    // carte "écran" (clipCard): miniature = lien YouTube, en dessous la date et le son lié. Tri par date, récent d'abord par défaut.
+    $("main").insertAdjacentHTML("afterbegin", crumbs(["home", "index.html"], ["clips"]));
+    const yrs = DATA.clips.map((c) => +(c.date || "0").slice(0, 4)).filter(Boolean);
+    $("#clips-sub").textContent = `${DATA.clips.length} clips · ${Math.min(...yrs)} – ${Math.max(...yrs)}`;
+    let order = -1; // -1: récent -> ancien
+    const render = () => {
+      $("#clips").innerHTML = [...DATA.clips].sort((p, q) => order * (p.date || "").localeCompare(q.date || "")).map((c) => clipCard(c)).join("");
+      document.querySelectorAll("#clip-sort button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.o === order));
+    };
+    $("#clip-sort").innerHTML = '<button class="btn" data-o="-1">Newest</button><button class="btn" data-o="1">Oldest</button>';
+    $("#clip-sort").onclick = (e) => { const b = e.target.closest("button"); if (b) { order = +b.dataset.o; render(); } };
+    render();
+  },
+  tier() {
+    // tier list perso: on range les pochettes dans S..F. Toucher une pochette puis une rangée (ou une autre pochette: elle se place devant),
+    // glisser-déposer à la souris, ou touches S A B C D F / 0 sur la pochette choisie. Sauvé dans ce navigateur (localStorage), export en PNG.
+    $("main").insertAdjacentHTML("afterbegin", crumbs(["home", "index.html"], ["tier list"]));
+    const TIERS = ["S", "A", "B", "C", "D", "F"], isProject = (x) => x.type === "Album" || x.type === "EP";
+    const LISTS = [["projects", "Albums & EPs", ALL.filter(isProject)], ["songs", "Singles & features", [...DATA.releases.filter((x) => !isProject(x)), ...DATA.features]],
+      ["sc", "SoundCloud", DATA.soundcloud.filter((x) => !isProject(x))]];
+    const store = { get: (k) => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+    let cur = LISTS[0], state = {}, sel = null;
+    const box = $("#tier");
+    const load = () => { // état sauvé, nettoyé (sons supprimés de data.js) ; le reste va dans la réserve
+      const saved = store.get("tier:" + cur[0]) || {}, ids = new Set(cur[2].map((x) => x.id)), seen = new Set();
+      state = {};
+      for (const t of TIERS) state[t] = (saved[t] || []).filter((id) => ids.has(id) && !seen.has(id) && seen.add(id));
+      state.pool = cur[2].slice().sort((p, q) => (q.date || "").localeCompare(p.date || "")).map((x) => x.id).filter((id) => !seen.has(id));
+    };
+    const save = () => store.set("tier:" + cur[0], Object.fromEntries(TIERS.map((t) => [t, state[t]])));
+    const cover = (id) => { const x = byId(id); return `<button class="tl-c${sel === id ? " sel" : ""}" draggable="true" data-id="${id}" title="${x.title}" aria-label="${x.title}"${sel === id ? ' aria-pressed="true"' : ""}>${x.cover ? `<img src="${x.thumb || x.cover}" alt="" width="80" height="80" loading="lazy" decoding="async">` : `<span>${x.title}</span>`}</button>`; };
+    const render = () => {
+      box.innerHTML = TIERS.map((t, i) => `<div class="tl-row" style="--h:${i}"><div class="tl-label">${t}</div><div class="tl-zone" data-z="${t}">${state[t].map(cover).join("")}</div></div>`).join("") +
+        `<h3 class="tl-pool-h">Not placed yet <small>${state.pool.length}</small></h3><div class="tl-zone tl-pool" data-z="pool">${state.pool.map(cover).join("")}</div>`;
+      document.querySelectorAll("#tier-lists button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === cur[0]));
+      $("#tier-help").textContent = sel ? `Now tap a tier for “${byId(sel).title}” (or press S, A, B, C, D, F · 0 to unplace)` : "Tap a cover, then a tier. Drag & drop with a mouse.";
+    };
+    const where = (id) => Object.keys(state).find((z) => state[z].includes(id));
+    const move = (id, zone, before) => { // retire la pochette de sa rangée et la pose dans `zone` (devant `before`, sinon à la fin)
+      const from = where(id); if (!from || !state[zone]) return;
+      state[from].splice(state[from].indexOf(id), 1);
+      const i = before ? state[zone].indexOf(before) : -1;
+      i < 0 ? state[zone].push(id) : state[zone].splice(i, 0, id);
+      sel = null; save(); render();
+    };
+    box.addEventListener("click", (e) => {
+      const c = e.target.closest(".tl-c"), z = e.target.closest(".tl-zone");
+      if (c && !sel) { sel = c.dataset.id; render(); document.querySelector(`.tl-c[data-id="${sel}"]`)?.focus(); return; }
+      if (c && sel === c.dataset.id) { sel = null; render(); return; }
+      if (sel && c) return move(sel, z.dataset.z, c.dataset.id);
+      if (sel && z) move(sel, z.dataset.z);
+    });
+    box.addEventListener("keydown", (e) => {
+      const c = e.target.closest(".tl-c"); if (!c) return;
+      const t = e.key.toUpperCase(), zone = TIERS.includes(t) ? t : e.key === "0" || e.key === "Backspace" ? "pool" : null;
+      if (zone) { e.preventDefault(); const id = c.dataset.id; move(id, zone); document.querySelector(`.tl-c[data-id="${id}"]`)?.focus(); }
+    });
+    let dragId = null;
+    box.addEventListener("dragstart", (e) => { const c = e.target.closest(".tl-c"); if (!c) return; dragId = c.dataset.id; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); });
+    box.addEventListener("dragover", (e) => { if (dragId && e.target.closest(".tl-zone")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } });
+    box.addEventListener("drop", (e) => {
+      const z = e.target.closest(".tl-zone"), c = e.target.closest(".tl-c"); if (!dragId || !z) return;
+      e.preventDefault(); const id = dragId; dragId = null;
+      if (c?.dataset.id !== id) move(id, z.dataset.z, c?.dataset.id);
+    });
+    box.addEventListener("dragend", () => (dragId = null));
+    $("#tier-lists").innerHTML = LISTS.map(([k, l, arr]) => `<button class="btn" data-l="${k}">${l} <span class="cnt">${String(arr.length).padStart(2, "0")}</span></button>`).join("");
+    $("#tier-lists").onclick = (e) => { const b = e.target.closest("button"); if (b) { cur = LISTS.find((l) => l[0] === b.dataset.l); sel = null; load(); render(); } };
+    $("#tier-clear").onclick = () => { for (const t of TIERS) { state.pool.push(...state[t]); state[t] = []; } sel = null; save(); load(); render(); };
+    $("#tier-png").onclick = async () => { // image de la tier list (canvas), téléchargée en PNG
+      const b = $("#tier-png"); b.disabled = true;
+      try {
+        await document.fonts?.load('48px "UnifrakturCook"');
+        const S = 96, G = 6, L = 110, W = 1200, per = Math.floor((W - L - 40 - G) / (S + G)), css = getComputedStyle(document.documentElement);
+        const rows = TIERS.map((t) => Math.max(1, Math.ceil(state[t].length / per)));
+        const H = 150 + rows.reduce((s, r) => s + r * (S + G) + G + 8, 0) + 60;
+        const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+        const g = cv.getContext("2d"), blood = css.getPropertyValue("--blood").trim() || "#9b0f16";
+        g.fillStyle = "#070707"; g.fillRect(0, 0, W, H);
+        g.fillStyle = "#e8e6d8"; g.font = '56px "UnifrakturCook", serif'; g.fillText("1300SAINT", 20, 70);
+        g.fillStyle = "#7a7a70"; g.font = '24px "Special Elite", monospace'; g.fillText(`My tier list · ${cur[1]}`, 22, 110);
+        const imgs = await Promise.all(TIERS.flatMap((t) => state[t]).map((id) => new Promise((res) => {
+          const x = byId(id), im = new Image(); im.onload = () => res([id, im]); im.onerror = () => res([id, null]); im.src = x.thumb || x.cover || "";
+        })));
+        const pic = new Map(imgs);
+        let y = 140;
+        TIERS.forEach((t, i) => {
+          const h = rows[i] * (S + G) + G;
+          g.fillStyle = "#121211"; g.fillRect(20, y, W - 40, h);
+          g.globalAlpha = 1 - i * .13; g.fillStyle = blood; g.fillRect(20, y, L - 20, h); g.globalAlpha = 1;
+          g.fillStyle = "#e8e6d8"; g.font = '54px "UnifrakturCook", serif'; g.textAlign = "center"; g.fillText(t, 20 + (L - 20) / 2, y + h / 2 + 18); g.textAlign = "left";
+          state[t].forEach((id, n) => {
+            const px = L + G + (n % per) * (S + G), py = y + G + Math.floor(n / per) * (S + G), im = pic.get(id);
+            if (im) g.drawImage(im, px, py, S, S); else { g.fillStyle = "#222"; g.fillRect(px, py, S, S); }
+          });
+          y += h + 8;
+        });
+        g.fillStyle = blood; g.font = '20px "Special Elite", monospace'; g.textAlign = "right"; g.fillText("shmunk1.github.io/saint.archive", W - 20, H - 22);
+        const blob = await new Promise((res) => cv.toBlob(res, "image/png"));
+        const l = document.createElement("a"); l.href = URL.createObjectURL(blob); l.download = `1300saint-tierlist-${cur[0]}.png`; l.click();
+        setTimeout(() => URL.revokeObjectURL(l.href), 4000);
+      } finally { b.disabled = false; }
+    };
+    load(); render();
   },
 };
 try { pages[document.body.dataset.page](); } catch (e) { console.error(e); } // une erreur de contenu ne doit pas bloquer le reste (engrenage, transitions...)
@@ -361,7 +569,7 @@ if (matchMedia("(pointer:fine)").matches) {
   addEventListener("click", (e) => {
     if (!on) return;
     const l = linkUnder(e.clientX, e.clientY);
-    if (l && !e.target.closest("a,button")) { e.preventDefault(); l.click(); }
+    if (l && !e.target.closest("a,button,.tl-zone")) { e.preventDefault(); l.click(); } // tier list: un clic dans une rangée vide reste pour la rangée
   }, true);
 }
 
@@ -463,7 +671,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   c.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:99;pointer-events:none;display:none";
   document.body.append(c);
   const ctx = c.getContext("2d");
-  const MS = 600, order = ["index.html", "discographie.html", "clips.html"];
+  const MS = 600, order = ["index.html", "discographie.html", "clips.html", "tierlist.html"];
   const pageIdx = (path) => { const f = path.split("/").pop() || "index.html"; return /\/release\/|^release\.html$/.test(path) || f === "release.html" ? 1.5 : /\/year\//.test(path) || f === "year.html" ? .5 : Math.max(0, order.indexOf(f)); }; // la page projet est "entre" Discography et Clips
   const SH = touch ? 8 : 4; // hauteur d'une bande de l'ombre (plus épaisse sur téléphone: moins de dégradés à dessiner)
   let seed, strips = [], marks = [], sweep = 1, dist = 0, busy = false;
@@ -544,7 +752,7 @@ addEventListener("pointermove", (e) => { lampX = e.clientX; lampY = e.clientY; l
   } catch {}
   addEventListener("click", (e) => { // départ: l'ombre balaie l'écran puis on change de page
     const a = e.target.closest?.("a");
-    if (busy || !a || reduce || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey ||
+    if (busy || !a || reduce || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || a.hasAttribute("download") ||
         a.target === "_blank" || a.origin !== location.origin || a.pathname + a.search === location.pathname + location.search) return;
     e.preventDefault(); busy = true;
     const dir = a.dataset.dir || (pageIdx(a.pathname) > pageIdx(location.pathname) ? "l" : "r");
