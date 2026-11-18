@@ -377,12 +377,13 @@ const pages = {
       state.pool = cur[2].slice().sort((p, q) => (q.date || "").localeCompare(p.date || "")).map((x) => x.id).filter((id) => !seen.has(id));
     };
     const save = () => store.set("tier:" + cur[0], Object.fromEntries(TIERS.map((t) => [t, state[t]])));
-    const cover = (id) => { const x = byId(id); return `<button class="tl-c${sel === id ? " sel" : ""}" draggable="true" data-id="${id}" title="${x.title}" aria-label="${x.title}"${sel === id ? ' aria-pressed="true"' : ""}>${x.cover ? `<img src="${x.thumb || x.cover}" alt="" width="80" height="80" loading="lazy" decoding="async">` : `<span>${x.title}</span>`}</button>`; };
+    // pas de title="" (infobulle du système, lente et hors thème): le nom s'affiche dans l'étiquette #tl-tip qui suit la souris
+    const cover = (id) => { const x = byId(id); return `<button class="tl-c${sel === id ? " sel" : ""}" data-id="${id}" aria-label="${x.title}"${sel === id ? ' aria-pressed="true"' : ""}>${x.cover ? `<img src="${x.thumb || x.cover}" alt="" width="80" height="80" loading="lazy" decoding="async" draggable="false">` : `<span>${x.title}</span>`}</button>`; };
     const render = () => {
       box.innerHTML = TIERS.map((t, i) => `<div class="tl-row" style="--h:${i}"><div class="tl-label">${t}</div><div class="tl-zone" data-z="${t}">${state[t].map(cover).join("")}</div></div>`).join("") +
         `<h3 class="tl-pool-h">Not placed yet <small>${state.pool.length}</small></h3><div class="tl-zone tl-pool" data-z="pool">${state.pool.map(cover).join("")}</div>`;
       document.querySelectorAll("#tier-lists button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.l === cur[0]));
-      $("#tier-help").textContent = sel ? `Now tap a tier for “${byId(sel).title}” (or press S, A, B, C, D, F · 0 to unplace)` : "Tap a cover, then a tier. Drag & drop with a mouse.";
+      $("#tier-help").textContent = sel ? `Now tap a tier for “${byId(sel).title}” (or press S, A, B, C, D, F · 0 to unplace)` : "Tap a cover, then a tier. Or drag it with the mouse.";
     };
     const where = (id) => Object.keys(state).find((z) => state[z].includes(id));
     const move = (id, zone, before) => { // retire la pochette de sa rangée et la pose dans `zone` (devant `before`, sinon à la fin)
@@ -404,15 +405,51 @@ const pages = {
       const t = e.key.toUpperCase(), zone = TIERS.includes(t) ? t : e.key === "0" || e.key === "Backspace" ? "pool" : null;
       if (zone) { e.preventDefault(); const id = c.dataset.id; move(id, zone); document.querySelector(`.tl-c[data-id="${id}"]`)?.focus(); }
     });
-    let dragId = null;
-    box.addEventListener("dragstart", (e) => { const c = e.target.closest(".tl-c"); if (!c) return; dragId = c.dataset.id; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); });
-    box.addEventListener("dragover", (e) => { if (dragId && e.target.closest(".tl-zone")) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; } });
-    box.addEventListener("drop", (e) => {
-      const z = e.target.closest(".tl-zone"), c = e.target.closest(".tl-c"); if (!dragId || !z) return;
-      e.preventDefault(); const id = dragId; dragId = null;
-      if (c?.dataset.id !== id) move(id, z.dataset.z, c?.dataset.id);
+    // étiquette au survol (souris): nom du son / projet + type et année, collée sous le curseur
+    const tip = document.createElement("div"); tip.id = "tl-tip"; tip.hidden = true; tip.setAttribute("aria-hidden", "true"); document.body.append(tip);
+    const label = (id) => { const x = byId(id); return `<b>${x.title}</b><small>${[kindLabel(x), (x.date || "").slice(0, 4)].filter(Boolean).join(" · ")}</small>`; };
+    const placeTip = (x, y) => { tip.style.transform = `translate(${Math.min(x + 18, innerWidth - tip.offsetWidth - 8)}px,${Math.min(y + 22, innerHeight - tip.offsetHeight - 8)}px)`; };
+    let tipId = null, drag = null, justDragged = false; // drag: pochette en cours de glissement (voir plus bas)
+    addEventListener("pointermove", (e) => {
+      if (e.pointerType === "touch") return;
+      const c = drag?.on ? null : e.target.closest?.(".tl-c"), id = drag?.on ? drag.id : c?.dataset.id;
+      if (id !== tipId) { tipId = id; tip.hidden = !id; if (id) tip.innerHTML = label(id); }
+      if (id) placeTip(e.clientX, e.clientY);
     });
-    box.addEventListener("dragend", () => (dragId = null));
+    addEventListener("scroll", () => { if (!drag?.on) { tip.hidden = true; tipId = null; } }, { passive: true });
+
+    // glisser-déposer fait maison (souris): le drag natif du navigateur impose le curseur du système et fige la croix.
+    // Ici une copie de la pochette suit la souris, la croix reste affichée; au lâcher on regarde la rangée / pochette sous le pointeur.
+    box.addEventListener("pointerdown", (e) => {
+      const c = e.target.closest(".tl-c"); if (!c || e.button || e.pointerType === "touch") return;
+      drag = { id: c.dataset.id, el: c, x: e.clientX, y: e.clientY, on: false };
+    });
+    addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      if (!drag.on) {
+        if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return; // simple clic: pas de glissement
+        drag.on = true; sel = null; render(); // render() refait les pochettes: on reprend celle qui est glissée
+        drag.el = box.querySelector(`.tl-c[data-id="${CSS.escape(drag.id)}"]`); drag.el?.classList.add("lift");
+        drag.ghost = drag.el.cloneNode(true); drag.ghost.className = "tl-c tl-ghost"; document.body.append(drag.ghost);
+        document.documentElement.classList.add("tl-dragging");
+      }
+      drag.ghost.style.transform = `translate(${e.clientX - 40}px,${e.clientY - 40}px) rotate(-4deg)`;
+      box.querySelectorAll(".tl-zone.over").forEach((z) => z.classList.remove("over"));
+      document.elementFromPoint(e.clientX, e.clientY)?.closest?.(".tl-zone")?.classList.add("over");
+    });
+    const endDrag = (e, drop) => {
+      if (!drag) return;
+      const d = drag; drag = null;
+      if (!d.on) return;
+      d.ghost.remove(); document.documentElement.classList.remove("tl-dragging");
+      box.querySelectorAll(".tl-zone.over").forEach((z) => z.classList.remove("over"));
+      justDragged = true; setTimeout(() => (justDragged = false), 0); // le "click" qui suit le lâcher ne doit pas sélectionner la pochette
+      const under = drop && document.elementFromPoint(e.clientX, e.clientY), z = under?.closest?.(".tl-zone"), c = under?.closest?.(".tl-c");
+      if (z && c?.dataset.id !== d.id) move(d.id, z.dataset.z, c?.dataset.id); else render();
+    };
+    addEventListener("pointerup", (e) => endDrag(e, true));
+    addEventListener("pointercancel", (e) => endDrag(e, false));
+    box.addEventListener("click", (e) => { if (justDragged) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
     $("#tier-lists").innerHTML = LISTS.map(([k, l, arr]) => `<button class="btn" data-l="${k}">${l} <span class="cnt">${String(arr.length).padStart(2, "0")}</span></button>`).join("");
     $("#tier-lists").onclick = (e) => { const b = e.target.closest("button"); if (b) { cur = LISTS.find((l) => l[0] === b.dataset.l); sel = null; load(); render(); } };
     $("#tier-clear").onclick = () => { for (const t of TIERS) { state.pool.push(...state[t]); state[t] = []; } sel = null; save(); load(); render(); };

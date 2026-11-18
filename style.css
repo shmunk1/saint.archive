@@ -523,3 +523,12 @@ footer > p { color:#444; }
   .tl-c { width:56px; height:56px; }
   footer .foot { gap:1rem 2rem; }
 }
+/* tier list: étiquette du nom au survol, pochette glissée (copie qui suit la souris), rangée visée */
+#tl-tip { position:fixed; left:0; top:0; z-index:99; pointer-events:none; max-width:16rem; padding:.45rem .7rem .5rem; background:#0b0b0a; border:1px solid var(--blood); border-radius:3px;
+  box-shadow:0 0 14px color-mix(in srgb, var(--blood) 40%, transparent); }
+#tl-tip b { display:block; font-family:var(--display); font-weight:400; font-size:1.05rem; line-height:1.2; color:var(--bone); }
+#tl-tip small { display:block; color:var(--dim); font-size:.68rem; letter-spacing:.15em; text-transform:uppercase; }
+.tl-ghost { position:fixed; left:0; top:0; z-index:98; pointer-events:none; margin:0; transition:none; opacity:.92; border-color:var(--blood); box-shadow:0 10px 30px #000, 0 0 18px var(--blood); }
+.tl-c.lift { opacity:.25; }
+.tl-zone.over { background:color-mix(in srgb, var(--blood) 14%, transparent); }
+html.tl-dragging, html.tl-dragging * { user-select:none; -webkit-user-select:none; }
