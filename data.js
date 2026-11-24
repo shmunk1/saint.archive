@@ -176,6 +176,8 @@ const DATA = {
   // clips: title, yt (ID YouTube = la partie après youtu.be/, sans ?si=...), date ("AAAA-MM-JJ", date de mise en ligne),
   //   rel (optionnel): id de la page du son / projet lié (le clip s'affiche sur cette page, et la carte du clip y renvoie)
   clips: [
+    { title: "808s.", yt: "V04W1iurYMM", date: "2026-11-23", rel: "newdrug2" },
+    { title: "PainKillers.", yt: "hLvVqj3T-4Q", date: "2026-11-08", rel: "newdrug2" },
     { title: "NotASong.", yt: "RQsrsoYt18o", date: "2026-10-12", rel: "newdrug2" },
     { title: "Migo", yt: "AQoOtiHlZbM", date: "2026-09-16", rel: "migo" },
     { title: "Encore.", yt: "H11S0oy8fcw", date: "2026-08-26", rel: "newdrug2" },
