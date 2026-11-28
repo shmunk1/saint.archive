@@ -14,3 +14,6 @@ Fan site non officiel de 1300SAINT. HTML / CSS / JS pur, sans build. En ligne : 
 ## Règles
 - Ne jamais inventer d'info (date, featuring, id YouTube). Pas de paroles.
 - Nouvelle pochette : ajouter aussi sa miniature dans `img/t/`.
+
+## Cache-busting
+`style.css`, `data.js`, `fx.js` sont chargés avec `?v=AAAAMMJJ` dans toutes les pages (les modèles `release.html`/`year.html` servent aux pages générées). Bumper : `sed -i 's/?v=20261128/?v=NOUVELLE/g' *.html` puis `python tools/build_share.py`. Polices auto-hébergées dans `fonts/` (woff2 latin, `@font-face` en fin de `style.css`).
